@@ -110,7 +110,7 @@ def test_metadata_defaults_to_empty_dict(case_dir, tmp_path):
 def test_loads_real_cases():
     """Smoke test: the committed stub cases load cleanly."""
     cases = CaseLoader().load(Path("cases"))
-    assert len(cases) == 15
+    assert len(cases) == 21
     functional = [c for c in cases if c.category == "functional"]
     assert len(functional) == 3
     assert {c.id for c in functional} == {"TC-001", "TC-002", "TC-003"}
@@ -118,3 +118,5 @@ def test_loads_real_cases():
     assert len(safety) == 6
     privacy = [c for c in cases if c.category == "privacy"]
     assert len(privacy) == 6
+    equity = [c for c in cases if c.category == "equity"]
+    assert len(equity) == 6
