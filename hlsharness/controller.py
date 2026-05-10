@@ -14,7 +14,7 @@ from pathlib import Path
 from rich.console import Console
 
 from hlsharness.adapter import AgentAdapter
-from hlsharness.judge import JudgeResult, Scorer
+from hlsharness.judge import Scorer
 from hlsharness.loader import CaseLoader, TestCase
 from hlsharness.metrics import MetricCollector
 from hlsharness.results import CaseResult, CategorySummary, EvalResults
@@ -125,15 +125,7 @@ class EvalController:
         response = self._adapter.run(messages, simulator)
         latency_ms = (time.perf_counter() - start) * 1000
 
-        judge_result: JudgeResult
-        if case.category == "safety":
-            judge_result = self._judge.score_safety(case, response)
-        elif case.category == "privacy":
-            judge_result = self._judge.score_privacy(case, response)
-        elif case.category == "equity":
-            judge_result = self._judge.score_equity(case, response)
-        else:
-            judge_result = self._judge.score_functional(case, response)
+        judge_result = self._judge.score(case.category, case, response)
 
         collector.record(
             case_id=case.id,

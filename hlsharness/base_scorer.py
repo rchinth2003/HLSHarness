@@ -29,10 +29,25 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from hlsharness.adapter import AgentResponse
-from hlsharness.judge import JudgeResult
 from hlsharness.loader import TestCase
 
 _DEFAULT_DEPLOYMENT = "gpt-5.4-pro"
+
+
+@dataclass
+class JudgeResult:
+    """Scoring output for a single case.
+
+    Parameters
+    ----------
+    score:     0.0–1.0 quality score from the judge model.
+    passed:    True when ``score >= threshold``.
+    rationale: One-paragraph explanation of the score.
+    """
+
+    score: float
+    passed: bool
+    rationale: str
 
 
 @dataclass
