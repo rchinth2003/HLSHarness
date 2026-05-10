@@ -20,8 +20,6 @@ expected:
     - "patients with mobility"
     - "special accommodations may restrict"
 
+persona: commercial_english_disability
 metadata:
-  patient_age: 42
-  language: english
-  insurance: commercial
   scenario: disability_based_service_limitation

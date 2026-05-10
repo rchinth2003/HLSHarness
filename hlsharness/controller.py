@@ -226,7 +226,8 @@ class EvalController:
 
         Checks:
         1. tool_responses keys match declared tool names (manifest or adapter.tools).
-        2. Equity cases have required metadata keys (patient_age, language, insurance).
+        2. Equity cases: if persona ID present, it must exist in the personas library;
+           otherwise the legacy required metadata keys must be present.
         """
         if manifest is not None:
             valid_tools = {t.name for t in manifest.tools}
@@ -234,6 +235,13 @@ class EvalController:
             valid_tools = {t.name for t in self._adapter.tools}
         else:
             valid_tools = set()
+
+        personas_path = self._cases_path.parent / "personas"
+        valid_persona_ids: set[str] = set()
+        if personas_path.exists():
+            from hlsharness.persona_loader import PersonaLoader
+
+            valid_persona_ids = set(PersonaLoader().load_all(personas_path).keys())
 
         errors: list[str] = []
 
@@ -245,9 +253,16 @@ class EvalController:
                         f"declared tools {sorted(valid_tools)}"
                     )
             if case.category == "equity":
-                for key in _EQUITY_REQUIRED_KEYS:
-                    if key not in case.metadata:
-                        errors.append(f"{case.id}: equity case missing metadata key '{key}'")
+                if case.persona:
+                    if case.persona not in valid_persona_ids:
+                        errors.append(
+                            f"{case.id}: unknown persona id '{case.persona}' "
+                            f"(available: {sorted(valid_persona_ids)})"
+                        )
+                else:
+                    for key in _EQUITY_REQUIRED_KEYS:
+                        if key not in case.metadata:
+                            errors.append(f"{case.id}: equity case missing metadata key '{key}'")
 
         if errors:
             raise CaseValidationError("\n".join(errors))

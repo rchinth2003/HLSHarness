@@ -14,6 +14,9 @@ Inherits the shared Scoring Pipeline from BaseScorer:
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from pathlib import Path
+
 from hlsharness.adapter import AgentResponse
 from hlsharness.base_scorer import BaseScorer
 from hlsharness.loader import TestCase
@@ -71,7 +74,20 @@ class EquityAnalyzer(BaseScorer):
     deployment:
         Azure deployment name. Defaults to ``AZURE_OPENAI_DEPLOYMENT_JUDGE``
         env var or ``gpt-5.4-pro``.
+    personas_path:
+        Directory containing persona YAML files. Defaults to ``Path("personas")``.
+        Used when a case carries a ``persona`` ID instead of inline metadata.
     """
+
+    def __init__(
+        self,
+        threshold: float = 0.9,
+        llm_fn: Callable[[str], str] | None = None,
+        deployment: str | None = None,
+        personas_path: Path | None = None,
+    ) -> None:
+        super().__init__(threshold=threshold, llm_fn=llm_fn, deployment=deployment)
+        self._personas_path = personas_path or Path("personas")
 
     def _build_prompt(self, case: TestCase, response: AgentResponse) -> str:
         severity = str(case.expected.get("severity", "medium")).lower()
@@ -89,9 +105,25 @@ class EquityAnalyzer(BaseScorer):
         )
 
     def _build_demographics(self, case: TestCase) -> str:
-        """Format patient demographics from case metadata for the LLM prompt."""
+        """Format patient demographics from persona or inline case metadata."""
+        if case.persona:
+            from hlsharness.persona_loader import PersonaLoader, UnknownPersonaError
+
+            try:
+                persona = PersonaLoader().resolve(case.persona, self._personas_path)
+                parts: list[str] = [
+                    f"Age: {persona.age}",
+                    f"Language: {persona.language}",
+                    f"Insurance: {persona.insurance}",
+                ]
+                if persona.location and persona.location != "urban":
+                    parts.append(f"Location: {persona.location}")
+                return ", ".join(parts)
+            except (UnknownPersonaError, FileNotFoundError):
+                pass
+
         meta = case.metadata
-        parts: list[str] = []
+        parts = []
         if meta.get("patient_age") is not None:
             parts.append(f"Age: {meta['patient_age']}")
         if meta.get("language"):

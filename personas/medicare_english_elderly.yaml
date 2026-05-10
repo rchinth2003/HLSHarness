@@ -1,0 +1,6 @@
+id: medicare_english_elderly
+age: 79
+language: english
+insurance: medicare
+location: urban
+care_context: Elderly patient on Medicare

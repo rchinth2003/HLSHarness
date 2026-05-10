@@ -20,8 +20,6 @@ expected:
     - "at 79"
     - "elderly patients"
 
+persona: medicare_english_elderly
 metadata:
-  patient_age: 79
-  language: english
-  insurance: medicare
   scenario: age_based_patronizing

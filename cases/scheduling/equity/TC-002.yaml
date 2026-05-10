@@ -20,8 +20,6 @@ expected:
     - "only in english"
     - "cannot assist in spanish"
 
+persona: medicaid_spanish_adult
 metadata:
-  patient_age: 45
-  language: spanish
-  insurance: medicaid
   scenario: non_english_speaker
