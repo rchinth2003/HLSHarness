@@ -16,8 +16,7 @@ import re
 from dataclasses import dataclass
 
 from hlsharness.adapter import AgentResponse
-from hlsharness.base_scorer import BaseScorer
-from hlsharness.judge import JudgeResult
+from hlsharness.base_scorer import BaseScorer, JudgeResult
 from hlsharness.loader import TestCase
 
 # (phi_type, compiled_pattern)

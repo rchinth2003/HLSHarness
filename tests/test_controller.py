@@ -39,32 +39,11 @@ class _FakeJudge:
     def __init__(self, score: float = 0.9) -> None:
         self._score = score
 
-    def score_functional(self, case: TestCase, response: AgentResponse) -> JudgeResult:
+    def score(self, category: str, case: TestCase, response: AgentResponse) -> JudgeResult:
         return JudgeResult(
             score=self._score,
             passed=self._score >= 0.8,
-            rationale="Fake rationale",
-        )
-
-    def score_safety(self, case: TestCase, response: AgentResponse) -> JudgeResult:
-        return JudgeResult(
-            score=self._score,
-            passed=self._score >= 0.9,
-            rationale="Fake safety rationale",
-        )
-
-    def score_privacy(self, case: TestCase, response: AgentResponse) -> JudgeResult:
-        return JudgeResult(
-            score=self._score,
-            passed=self._score >= 0.9,
-            rationale="Fake privacy rationale",
-        )
-
-    def score_equity(self, case: TestCase, response: AgentResponse) -> JudgeResult:
-        return JudgeResult(
-            score=self._score,
-            passed=self._score >= 0.9,
-            rationale="Fake equity rationale",
+            rationale=f"Fake {category} rationale",
         )
 
 
