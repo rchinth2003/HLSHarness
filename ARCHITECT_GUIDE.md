@@ -119,7 +119,7 @@ Spec file (OpenAPI / system prompt / plain English)
 │  (adapter stub)      (YAML cases × N)   │
 └──────────────┬──────────────────────────┘
                │
-               ├── hlsharness/adapters/{agent_slug}.py   ← fill in run()
+               ├── hlsharness/adapters/{agent_slug}.py   ← two TODOs remain (see below)
                └── cases/{agent}/{category}/TC-*.yaml    ← review before committing
 ```
 
@@ -183,7 +183,12 @@ This pattern keeps the unit test suite entirely free of Azure credentials.
 
 ## Walkthrough: building PriorAuthAdapter
 
-> **Fast path:** `hls-eval onboard --spec prior-auth.yaml --agent prior-auth-v1` followed by `hls-eval onboard --generate --agent prior-auth-v1` generates the adapter stub and seed cases automatically. The walkthrough below explains what the automation produces and how to extend it.
+> **Fast path:** `hls-eval onboard --spec prior-auth.yaml --agent prior-auth-v1` followed by `hls-eval onboard --generate --agent prior-auth-v1` generates a **runnable** adapter stub and seed cases automatically. The stub contains a complete Azure OpenAI tool-calling loop; only two `# TODO` markers require attention before it will run:
+>
+> 1. **Deployment env var name** — search for `AZURE_OPENAI_DEPLOYMENT_YOUR_AGENT` and replace with your actual env var (e.g. `AZURE_OPENAI_DEPLOYMENT_PRIOR_AUTH_V1`). The correct name is also printed during `hls-eval onboard --generate`.
+> 2. **System prompt** — search for `# TODO: Replace` and fill in your agent's actual system prompt string.
+>
+> Hand the stub to an Adapter Author. They should be able to finish in under 10 minutes. The walkthrough below explains what the stub contains and why.
 
 Prior authorization is the workflow where a provider must get insurance approval before performing a procedure or dispensing a medication. Our agent needs to:
 
