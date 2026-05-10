@@ -170,6 +170,8 @@ class SchedulingAdapter(AgentAdapter):
         ]
 
         conversation = [{"role": "system", "content": self.system_prompt}, *messages]
+        prompt_tokens = 0
+        completion_tokens = 0
 
         for _ in range(self._max_turns):
             response = client.chat.completions.create(
@@ -178,12 +180,18 @@ class SchedulingAdapter(AgentAdapter):
                 tools=openai_tools,
                 tool_choice="auto",
             )
+            if response.usage:
+                prompt_tokens += response.usage.prompt_tokens
+                completion_tokens += response.usage.completion_tokens
+
             message = response.choices[0].message
 
             if not message.tool_calls:
                 return AgentResponse(
                     content=message.content or "",
                     trajectory=tool_simulator.trajectory,
+                    prompt_tokens=prompt_tokens,
+                    completion_tokens=completion_tokens,
                 )
 
             conversation.append(message.model_dump(exclude_unset=True))
