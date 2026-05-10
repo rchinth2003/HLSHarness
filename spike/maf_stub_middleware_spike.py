@@ -32,8 +32,6 @@ from contextvars import ContextVar
 from dataclasses import dataclass
 from typing import Any
 
-from azure.identity import DefaultAzureCredential, get_bearer_token_provider
-
 # ---------------------------------------------------------------------------
 # ContextVar that EvalController will set per case
 # ---------------------------------------------------------------------------
@@ -101,7 +99,11 @@ class StubToolMiddleware(FunctionMiddleware):
 # ---------------------------------------------------------------------------
 
 from agent_framework import Agent, tool  # noqa: E402
-from agent_framework.openai import AzureOpenAIChatClient  # noqa: E402
+from agent_framework.openai import OpenAIChatClient  # noqa: E402
+from azure.identity import DefaultAzureCredential  # noqa: E402
+from dotenv import load_dotenv  # noqa: E402
+
+load_dotenv()
 
 
 @tool
@@ -112,14 +114,10 @@ def search_available_slots(provider_id: str, date: str) -> dict[str, Any]:  # ty
 
 
 def build_agent(middleware: StubToolMiddleware) -> Agent:
-    credential = DefaultAzureCredential()
-    token_provider = get_bearer_token_provider(
-        credential, "https://cognitiveservices.azure.com/.default"
-    )
-    client = AzureOpenAIChatClient(
-        endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
-        deployment=os.environ["AZURE_OPENAI_DEPLOYMENT_AGENT"],
-        azure_ad_token_provider=token_provider,
+    client = OpenAIChatClient(
+        model=os.environ["AZURE_OPENAI_DEPLOYMENT_AGENT"],
+        azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
+        credential=DefaultAzureCredential(),
     )
     return Agent(
         client=client,
@@ -231,8 +229,8 @@ async def run_spike() -> None:
     print("\n=== Results ===")
     all_pass = all(results.values())
     for name, passed in results.items():
-        icon = "✓" if passed else "✗"
-        print(f"  {icon} {name}: {'PASS' if passed else 'FAIL'}")
+        icon = "PASS" if passed else "FAIL"
+        print(f"  [{icon}] {name}")
 
     print(
         f"\n{'ALL HYPOTHESES CONFIRMED — proceed to Slice 15B' if all_pass else 'FAILURES DETECTED — review alternative approach before proceeding'}"
