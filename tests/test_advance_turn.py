@@ -14,7 +14,6 @@ from hlsharness.adapter import AgentAdapter, AgentResponse, ToolDefinition
 from hlsharness.controller import EvalController
 from hlsharness.judge import JudgeResult
 from hlsharness.loader import TestCase
-from hlsharness.metrics import MetricCollector
 from hlsharness.simulator import ToolSimulator
 
 # ── Minimal fake judge ──────────────────────────────────────────────────────
@@ -131,20 +130,18 @@ def _make_case(
 def test_none_response_raises_assertion_error() -> None:
     """Adapter.run() returning None must cause AssertionError in _run_case()."""
     controller = _make_controller(_NoneAdapter())
-    collector = MetricCollector()
     case = _make_case()
 
     with pytest.raises(AssertionError, match=r"_NoneAdapter\.run\(\) returned None"):
-        controller._run_case(case, collector)
+        controller._run_case(case)
 
 
 def test_empty_trajectory_does_not_raise() -> None:
     """Zero-tool-call case: empty trajectory is valid and must not raise."""
     controller = _make_controller(_EmptyTrajectoryAdapter())
-    collector = MetricCollector()
     case = _make_case()
 
-    result = controller._run_case(case, collector)
+    result = controller._run_case(case)
 
     assert result.trajectory == []
 
@@ -155,10 +152,9 @@ def test_non_empty_trajectory_works_correctly() -> None:
         "check_availability": {"slots": ["2025-01-01T10:00"]}
     }
     controller = _make_controller(_NonEmptyTrajectoryAdapter())
-    collector = MetricCollector()
     case = _make_case(tool_responses=tool_responses)
 
-    result = controller._run_case(case, collector)
+    result = controller._run_case(case)
 
     assert len(result.trajectory) == 1
     assert result.trajectory[0]["tool_name"] == "check_availability"

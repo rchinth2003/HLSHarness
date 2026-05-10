@@ -1,8 +1,8 @@
 """EvalController — orchestrates a complete evaluation run end-to-end.
 
-Ties together CaseLoader, AgentAdapter, ToolSimulator, Judge, and MetricCollector
-into a single ``run()`` call that produces an ``EvalResults`` ready for
-``results.json`` and the Streamlit dashboard.
+Ties together CaseLoader, AgentAdapter, ToolSimulator, Judge into a single
+``run()`` call that produces an ``EvalResults`` ready for ``results.json``
+and the Streamlit dashboard.
 """
 
 from __future__ import annotations
@@ -16,7 +16,6 @@ from rich.console import Console
 from hlsharness.adapter import AgentAdapter
 from hlsharness.judge import Scorer
 from hlsharness.loader import CaseLoader, TestCase
-from hlsharness.metrics import MetricCollector
 from hlsharness.results import CaseResult, CategorySummary, EvalResults
 from hlsharness.simulator import ToolSimulator
 
@@ -103,7 +102,6 @@ class EvalController:
 
         self._validate_cases(cases)
 
-        collector = MetricCollector()
         case_results: list[CaseResult] = []
 
         _console.print(
@@ -111,7 +109,7 @@ class EvalController:
         )
 
         for case in cases:
-            result = self._run_case(case, collector)
+            result = self._run_case(case)
             case_results.append(result)
             status = "[green]PASS[/green]" if result.passed else "[red]FAIL[/red]"
             _console.print(
@@ -153,8 +151,8 @@ class EvalController:
         if errors:
             raise CaseValidationError("\n".join(errors))
 
-    def _run_case(self, case: TestCase, collector: MetricCollector) -> CaseResult:
-        """Run a single case through the adapter, judge, and metric collector."""
+    def _run_case(self, case: TestCase) -> CaseResult:
+        """Run a single case through the adapter and judge."""
         simulator = ToolSimulator(case.tool_responses)
         raw_messages = case.input.get("messages", [])
         messages: list[dict[str, object]] = raw_messages if isinstance(raw_messages, list) else []
@@ -170,14 +168,6 @@ class EvalController:
 
         judge_result = self._judge.score(case.category, case, response)
 
-        collector.record(
-            case_id=case.id,
-            latency_ms=latency_ms,
-            prompt_tokens=response.prompt_tokens,
-            completion_tokens=response.completion_tokens,
-        )
-        metrics = collector.get(case.id)
-
         input_summary = str(messages[0].get("content", ""))[:120] if messages else ""
 
         return CaseResult(
@@ -189,9 +179,9 @@ class EvalController:
             passed=judge_result.passed,
             rationale=judge_result.rationale,
             trajectory=[asdict(t) for t in simulator.trajectory],
-            latency_ms=round(metrics.latency_ms, 1),
-            prompt_tokens=metrics.prompt_tokens,
-            completion_tokens=metrics.completion_tokens,
+            latency_ms=round(latency_ms, 1),
+            prompt_tokens=response.prompt_tokens,
+            completion_tokens=response.completion_tokens,
             metadata=case.metadata,
         )
 
