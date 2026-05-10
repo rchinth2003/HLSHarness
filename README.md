@@ -270,7 +270,13 @@ uv run hls-eval                              # defaults: cases/, scheduling-v1, 
 uv run hls-eval --cases /path/to/cases
 uv run hls-eval --agent prior-auth-v1
 uv run hls-eval --out artifacts/results.json
+
+# Generate a branded PDF Evaluation Report after the run
+uv run hls-eval --pdf report.pdf
+uv run hls-eval --agent prior-auth-v1 --out results.json --pdf report.pdf
 ```
+
+PDF branding (org name, color, title) is read from `report_config.yaml` if present; copy `report_config.yaml.example` as a starting point. The report contains: cover page (agent name, date, verdict) → scorecard table → failed cases with rationale → passing cases.
 
 Exit code is `0` when all categories pass their threshold, `1` when any gate fails, `2` on bad arguments.
 

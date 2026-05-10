@@ -48,6 +48,12 @@ def _build_parser() -> argparse.ArgumentParser:
         metavar="PATH",
         help="Path to write results.json (default: results.json)",
     )
+    p.add_argument(
+        "--pdf",
+        default=None,
+        metavar="PATH",
+        help="If set, write a branded PDF Evaluation Report to this path after the run.",
+    )
     return p
 
 
@@ -204,6 +210,20 @@ def _run_onboard(argv: list[str]) -> int:  # pragma: no cover
     return 0
 
 
+def _write_pdf_report(results: object, path: Path) -> None:  # pragma: no cover
+    from hlsharness.report_config import ReportConfig
+    from hlsharness.report_renderer import ReportRenderer
+    from hlsharness.results import EvalResults
+
+    assert isinstance(results, EvalResults)
+    config_path = Path("report_config.yaml")
+    config = ReportConfig.load(config_path) if config_path.exists() else ReportConfig.defaults()
+    pdf_bytes = ReportRenderer().render(results, config)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(pdf_bytes)
+    _console.print(f"PDF report written to [bold]{path}[/bold]")
+
+
 def main(argv: list[str] | None = None) -> int:  # pragma: no cover
     if argv is None:
         argv = sys.argv[1:]
@@ -236,6 +256,9 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover
     _print_summary(results)
     results.write_json(Path(args.out))
     _console.print(f"Results written to [bold]{args.out}[/bold]")
+
+    if args.pdf:
+        _write_pdf_report(results, Path(args.pdf))
 
     return 0 if results.passed else 1
 
