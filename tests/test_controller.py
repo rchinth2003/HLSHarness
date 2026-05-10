@@ -25,7 +25,11 @@ class _FakeAdapter(AgentAdapter):
 
     @property
     def tools(self) -> list[ToolDefinition]:
-        return []
+        return [
+            ToolDefinition(name="search_available_slots", description=""),
+            ToolDefinition(name="book_appointment", description=""),
+            ToolDefinition(name="cancel_appointment", description=""),
+        ]
 
     def run(self, messages: list[dict], tool_simulator: ToolSimulator) -> AgentResponse:  # type: ignore[override]
         return AgentResponse(
