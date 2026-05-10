@@ -54,14 +54,20 @@ def _build_parser() -> argparse.ArgumentParser:
 def _build_onboard_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="hls-eval onboard",
-        description="Onboard a new agent: interpret spec → manifest, scaffold adapter, generate cases.",
+        description="Onboard a new agent: interpret spec → agent.yaml, scaffold adapter, generate cases.",
     )
     p.add_argument(
         "--spec",
         metavar="PATH",
         default=None,
         help="Path to an agent spec file (OpenAPI JSON/YAML, system prompt, or plain English). "
-        "Writes cases/{agent}/manifest.yaml.",
+        "Writes cases/{agent}/agent.yaml and prints a behavioral critique.",
+    )
+    p.add_argument(
+        "--critique",
+        metavar="PATH",
+        default=None,
+        help="Path to an existing agent.yaml to re-run the behavioral critique without Phase 1.",
     )
     p.add_argument(
         "--generate",
@@ -126,15 +132,19 @@ def _run_onboard(argv: list[str]) -> int:  # pragma: no cover
     """Dispatch hls-eval onboard sub-commands."""
     import dataclasses
 
+    import yaml
+    from rich.syntax import Syntax
+
     from hlsharness.adapter_scaffolder import AdapterScaffolder
     from hlsharness.generator import CaseGenerator
+    from hlsharness.maf_agent import load_agent_yaml
     from hlsharness.manifest import AgentManifest
     from hlsharness.spec_interpreter import SpecInterpreter
 
     args = _build_onboard_parser().parse_args(argv)
 
-    if not args.spec and not args.generate:
-        _console.print("[red]Error:[/red] provide --spec PATH or --generate")
+    if not args.spec and not args.generate and not args.critique:
+        _console.print("[red]Error:[/red] provide --spec PATH, --critique PATH, or --generate")
         return 2
 
     if args.spec and args.generate:
@@ -143,7 +153,7 @@ def _run_onboard(argv: list[str]) -> int:  # pragma: no cover
 
     cases_path = Path(args.cases)
 
-    # ── Phase 1: spec → manifest ──────────────────────────────────────────────
+    # ── Phase 1: spec → agent.yaml ────────────────────────────────────────────
     if args.spec:
         try:
             from hlsharness.pdf_extractor import PdfExtractor
@@ -154,20 +164,52 @@ def _run_onboard(argv: list[str]) -> int:  # pragma: no cover
             return 2
 
         try:
-            manifest = SpecInterpreter().interpret(spec_text)
+            interp = SpecInterpreter()
+            agent_yaml_obj = interp.interpret(spec_text)
         except Exception as exc:  # noqa: BLE001
             _console.print(f"[red]Error interpreting spec:[/red] {exc}")
             return 2
 
         if args.agent:
-            manifest = dataclasses.replace(manifest, agent=args.agent)
+            agent_yaml_obj = dataclasses.replace(agent_yaml_obj, name=args.agent)
 
-        manifest_path = cases_path / manifest.agent / "manifest.yaml"
-        manifest.write(manifest_path)
-        _console.print(f"[green]Manifest written:[/green] {manifest_path}")
+        yaml_path = cases_path / agent_yaml_obj.name / "agent.yaml"
+        agent_yaml_obj.write(yaml_path)
+        _console.print(f"[green]agent.yaml written:[/green] {yaml_path}")
+
+        yaml_text = yaml.dump(agent_yaml_obj.to_dict(), allow_unicode=True, sort_keys=False)
+        _console.print("\n[bold]Draft agent.yaml[/bold]\n")
+        _console.print(Syntax(yaml_text, "yaml"))
+
+        # ── Phase 2: behavioral critique ─────────────────────────────────────
+        _console.print("\n[bold]Behavioral critique (Phase 2)[/bold]\n")
+        try:
+            critique = interp.critique(yaml_text)
+            _console.print(critique)
+        except Exception as exc:  # noqa: BLE001
+            _console.print(f"[yellow]Critique unavailable:[/yellow] {exc}")
+
         return 0
 
-    # ── Phase 2: manifest → adapter stub + cases ──────────────────────────────
+    # ── Re-critique only ──────────────────────────────────────────────────────
+    if args.critique:
+        try:
+            agent_yaml_obj = load_agent_yaml(Path(args.critique))
+        except Exception as exc:  # noqa: BLE001
+            _console.print(f"[red]Error loading agent.yaml:[/red] {exc}")
+            return 2
+
+        yaml_text = yaml.dump(agent_yaml_obj.to_dict(), allow_unicode=True, sort_keys=False)
+        _console.print("\n[bold]Behavioral critique[/bold]\n")
+        try:
+            critique = SpecInterpreter().critique(yaml_text)
+            _console.print(critique)
+        except Exception as exc:  # noqa: BLE001
+            _console.print(f"[red]Critique failed:[/red] {exc}")
+            return 2
+        return 0
+
+    # ── Phase 2 (legacy): manifest → adapter stub + cases ────────────────────
     if not args.agent:
         _console.print("[red]Error:[/red] --agent NAME is required with --generate")
         return 2
