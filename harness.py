@@ -11,9 +11,13 @@ Run only functional cases::
 
     python harness.py run --agent scheduling-v1 --categories functional
 
-Launch the Streamlit dashboard after the run (Slice 3+)::
+Launch the Streamlit dashboard after the run::
 
     python harness.py run --agent scheduling-v1 --serve
+
+Generate new test cases with an LLM::
+
+    python harness.py generate --agent scheduling-v1 --category functional --count 5
 
 Environment variables required
 -------------------------------
@@ -108,6 +112,34 @@ def cmd_run(args: argparse.Namespace) -> int:
     return 0 if results.passed else 1
 
 
+def cmd_generate(args: argparse.Namespace) -> int:
+    """Execute the generate subcommand."""
+    from hlsharness.generator import CaseGenerator
+
+    generator = CaseGenerator(
+        agent=args.agent,
+        output_dir=Path(args.cases),
+    )
+
+    _console.print(
+        f"\n[bold]Generating {args.count} '{args.category}' case(s) for agent:[/bold] {args.agent}\n"
+    )
+
+    try:
+        paths = generator.generate(category=args.category, count=args.count)
+    except (ValueError, RuntimeError) as exc:
+        _console.print(f"[red]Generation failed:[/red] {exc}")
+        return 1
+
+    for p in paths:
+        _console.print(f"  [green]✓[/green] {p}")
+
+    _console.print(
+        f"\n[dim]Generated {len(paths)} case(s) in {Path(args.cases) / args.agent / args.category}[/dim]\n"
+    )
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         prog="harness",
@@ -123,9 +155,24 @@ def main() -> int:
     run_p.add_argument("--categories", nargs="*", help="Limit to specific categories")
     run_p.add_argument("--serve", action="store_true", help="Launch Streamlit after run")
 
+    gen_p = sub.add_parser("generate", help="Generate test cases with an LLM")
+    gen_p.add_argument("--agent", required=True, help="Agent name (e.g. scheduling-v1)")
+    gen_p.add_argument(
+        "--category",
+        required=True,
+        choices=["functional", "safety", "privacy", "equity", "operational"],
+        help="Category of cases to generate",
+    )
+    gen_p.add_argument(
+        "--count", type=int, default=5, help="Number of cases to generate (default 5)"
+    )
+    gen_p.add_argument("--cases", default="cases", help="Root cases directory (default: cases)")
+
     args = parser.parse_args()
     if args.command == "run":
         return cmd_run(args)
+    if args.command == "generate":
+        return cmd_generate(args)
     return 0
 
 
