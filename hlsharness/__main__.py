@@ -135,10 +135,7 @@ def _run_onboard(argv: list[str]) -> int:  # pragma: no cover
     import yaml
     from rich.syntax import Syntax
 
-    from hlsharness.adapter_scaffolder import AdapterScaffolder
-    from hlsharness.generator import CaseGenerator
     from hlsharness.maf_agent import load_agent_yaml
-    from hlsharness.manifest import AgentManifest
     from hlsharness.spec_interpreter import SpecInterpreter
 
     args = _build_onboard_parser().parse_args(argv)
@@ -209,36 +206,45 @@ def _run_onboard(argv: list[str]) -> int:  # pragma: no cover
             return 2
         return 0
 
-    # ── Phase 2 (legacy): manifest → adapter stub + cases ────────────────────
+    # ── Phase 3: agent.yaml → fixture stubs + cases ──────────────────────────
     if not args.agent:
         _console.print("[red]Error:[/red] --agent NAME is required with --generate")
         return 2
 
-    manifest_path = cases_path / args.agent / "manifest.yaml"
+    agent_yaml_path = cases_path / args.agent / "agent.yaml"
     try:
-        manifest = AgentManifest.load(manifest_path)
+        agent_yaml_obj = load_agent_yaml(agent_yaml_path)
     except FileNotFoundError:
         _console.print(
-            f"[red]Error:[/red] no manifest found at {manifest_path}. "
+            f"[red]Error:[/red] no agent.yaml found at {agent_yaml_path}. "
             "Run 'hls-eval onboard --spec PATH --agent NAME' first."
         )
         return 2
+    except Exception as exc:  # noqa: BLE001
+        _console.print(f"[red]Error loading agent.yaml:[/red] {exc}")
+        return 2
 
-    stub = AdapterScaffolder().scaffold(manifest)
-    agent_slug = manifest.agent.replace("-", "_")
-    adapter_path = Path("hlsharness/adapters") / f"{agent_slug}.py"
-    adapter_path.parent.mkdir(parents=True, exist_ok=True)
-    adapter_path.write_text(stub, encoding="utf-8")
-    _console.print(f"[green]Adapter stub written:[/green] {adapter_path}")
+    from hlsharness.generator import CaseGenerator
 
-    tool_names = [t.name for t in manifest.tools]
+    stubs_dir = Path("stubs")
+    personas_dir = Path("personas")
+
     generator = CaseGenerator(
-        agent=manifest.agent,
+        agent=agent_yaml_obj.name,
         output_dir=cases_path,
-        tools=tool_names,
-        agent_description=manifest.description,
+        agent_yaml=agent_yaml_obj,
+        stubs_dir=stubs_dir,
+        personas_dir=personas_dir,
     )
-    for category in manifest.categories:
+
+    # Step 1: generate fixture stubs for every tool
+    stubs_written = generator.generate_fixtures(stubs_dir=stubs_dir)
+    for p in stubs_written:
+        _console.print(f"[green]Fixture written:[/green] {p}")
+
+    # Step 2: generate test cases per category
+    categories: list[str] = agent_yaml_obj.x_harness.get("categories", [])
+    for category in categories:
         written = generator.generate(category=category, count=args.count)
         for p in written:
             _console.print(f"[green]Case written:[/green] {p}")

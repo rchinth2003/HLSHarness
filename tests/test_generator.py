@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
@@ -363,3 +364,282 @@ def test_generated_yaml_loadable_by_case_loader(tmp_path: Path) -> None:
     cases = CaseLoader().load(tmp_path, agent="scheduling-v1")
     assert len(cases) == 1
     assert cases[0].agent == "scheduling-v1"
+
+
+# ── MafAgentYaml integration ──────────────────────────────────────────────────
+
+
+def _make_agent_yaml(tools: list[str] | None = None) -> object:
+    """Return a MafAgentYaml with the given tool names."""
+    from hlsharness.maf_agent import MafAgentYaml, MafToolDef
+
+    tool_list = [
+        MafToolDef(
+            name=t,
+            description=f"Tool {t}",
+            parameters={
+                "type": "object",
+                "properties": {"input": {"type": "string", "description": "input value"}},
+                "required": ["input"],
+            },
+        )
+        for t in (tools or ["book_appointment", "search_available_slots"])
+    ]
+    return MafAgentYaml(
+        name="prior-auth-v1",
+        description="Prior authorization agent for insurance approvals",
+        system_prompt="You are a prior authorization specialist.",
+        tools=tool_list,
+        x_harness={"categories": ["functional", "equity"], "thresholds": {}, "personas": []},
+    )
+
+
+def _maf_specs(n: int = 1, persona_id: str | None = None) -> list[dict[str, object]]:
+    """Return MAF-mode spec dicts with tool_response_scenario + optional persona_id."""
+    return [
+        {
+            "input_content": f"Patient message {i}",
+            "expected_outcome": f"Agent books appointment {i}",
+            "must_not_contain": [],
+            "tool_name": "book_appointment",
+            "tool_response_scenario": "confirmed",
+            "persona_id": persona_id,
+            "metadata": {"language": "english", "insurance": "commercial", "patient_age": 40},
+        }
+        for i in range(1, n + 1)
+    ]
+
+
+def test_agent_yaml_overrides_tools_param(tmp_path: Path) -> None:
+    received: list[str] = []
+
+    def cap_llm(prompt: str, endpoint: str, deployment: str) -> str:
+        received.append(prompt)
+        return json.dumps(_maf_specs(1))
+
+    gen = CaseGenerator(
+        agent="prior-auth-v1",
+        output_dir=tmp_path,
+        llm_fn=cap_llm,
+        agent_yaml=_make_agent_yaml(["book_appointment", "search_available_slots"]),
+        tools=["ignored_tool"],
+    )
+    gen.generate("functional", count=1)
+
+    assert "book_appointment" in received[0]
+    assert "search_available_slots" in received[0]
+    assert "ignored_tool" not in received[0]
+
+
+def test_agent_yaml_description_in_prompt(tmp_path: Path) -> None:
+    received: list[str] = []
+
+    def cap_llm(prompt: str, endpoint: str, deployment: str) -> str:
+        received.append(prompt)
+        return json.dumps(_maf_specs(1))
+
+    gen = CaseGenerator(
+        agent="prior-auth-v1",
+        output_dir=tmp_path,
+        llm_fn=cap_llm,
+        agent_yaml=_make_agent_yaml(),
+    )
+    gen.generate("functional", count=1)
+
+    assert "Prior authorization agent for insurance approvals" in received[0]
+
+
+def test_maf_mode_uses_tool_response_scenario(tmp_path: Path) -> None:
+    gen = CaseGenerator(
+        agent="prior-auth-v1",
+        output_dir=tmp_path,
+        llm_fn=_fake_llm(_maf_specs(1)),
+        agent_yaml=_make_agent_yaml(),
+    )
+    (path,) = gen.generate("functional", count=1)
+    data = yaml.safe_load(path.read_text())
+    assert data["tool_responses"]["book_appointment"] == "confirmed"
+
+
+def test_maf_mode_equity_includes_persona(tmp_path: Path) -> None:
+    specs = _maf_specs(1, persona_id="commercial_english_adult")
+    gen = CaseGenerator(
+        agent="prior-auth-v1",
+        output_dir=tmp_path,
+        llm_fn=_fake_llm(specs),
+        agent_yaml=_make_agent_yaml(),
+    )
+    (path,) = gen.generate("equity", count=1)
+    data = yaml.safe_load(path.read_text())
+    assert data["persona"] == "commercial_english_adult"
+
+
+def test_maf_mode_no_persona_id_omits_persona_field(tmp_path: Path) -> None:
+    specs = _maf_specs(1, persona_id=None)
+    gen = CaseGenerator(
+        agent="prior-auth-v1",
+        output_dir=tmp_path,
+        llm_fn=_fake_llm(specs),
+        agent_yaml=_make_agent_yaml(),
+    )
+    (path,) = gen.generate("functional", count=1)
+    data = yaml.safe_load(path.read_text())
+    assert "persona" not in data
+
+
+def test_maf_prompt_includes_fixture_scenarios(tmp_path: Path) -> None:
+    received: list[str] = []
+
+    def cap_llm(prompt: str, endpoint: str, deployment: str) -> str:
+        received.append(prompt)
+        return json.dumps(_maf_specs(1))
+
+    stubs_dir = tmp_path / "stubs"
+    (stubs_dir / "prior-auth-v1" / "book_appointment").mkdir(parents=True)
+    (stubs_dir / "prior-auth-v1" / "book_appointment" / "confirmed.yaml").write_text("status: ok")
+
+    gen = CaseGenerator(
+        agent="prior-auth-v1",
+        output_dir=tmp_path / "cases",
+        llm_fn=cap_llm,
+        agent_yaml=_make_agent_yaml(),
+        stubs_dir=stubs_dir,
+    )
+    gen.generate("functional", count=1)
+
+    assert "confirmed" in received[0]
+
+
+def test_maf_prompt_includes_persona_ids(tmp_path: Path) -> None:
+    received: list[str] = []
+
+    def cap_llm(prompt: str, endpoint: str, deployment: str) -> str:
+        received.append(prompt)
+        return json.dumps(_maf_specs(1, persona_id="commercial_english_adult"))
+
+    personas_dir = tmp_path / "personas"
+    personas_dir.mkdir()
+    (personas_dir / "commercial_english_adult.yaml").write_text("id: commercial_english_adult")
+    (personas_dir / "medicaid_spanish_adult.yaml").write_text("id: medicaid_spanish_adult")
+
+    gen = CaseGenerator(
+        agent="prior-auth-v1",
+        output_dir=tmp_path / "cases",
+        llm_fn=cap_llm,
+        agent_yaml=_make_agent_yaml(),
+        personas_dir=personas_dir,
+    )
+    gen.generate("equity", count=1)
+
+    assert "commercial_english_adult" in received[0]
+    assert "medicaid_spanish_adult" in received[0]
+
+
+# ── generate_fixtures() ───────────────────────────────────────────────────────
+
+
+def _fake_fixture_llm(scenarios: list[dict[str, object]]) -> Callable[[str, str, str], str]:
+    def _fn(prompt: str, endpoint: str, deployment: str) -> str:
+        return json.dumps(scenarios)
+
+    return _fn
+
+
+def _default_fixture_scenarios() -> list[dict[str, object]]:
+    return [
+        {"name": "confirmed", "response": {"status": "confirmed", "confirmation_id": "CONF-001"}},
+        {"name": "slot_taken", "response": {"status": "error", "message": "No slots available"}},
+    ]
+
+
+def test_generate_fixtures_writes_yaml_files(tmp_path: Path) -> None:
+    stubs_dir = tmp_path / "stubs"
+    gen = CaseGenerator(
+        agent="prior-auth-v1",
+        output_dir=tmp_path / "cases",
+        llm_fn=_fake_fixture_llm(_default_fixture_scenarios()),
+        agent_yaml=_make_agent_yaml(["book_appointment"]),
+    )
+    written = gen.generate_fixtures(stubs_dir=stubs_dir)
+    assert len(written) == 2
+    for p in written:
+        assert p.exists()
+        assert p.suffix == ".yaml"
+
+
+def test_generate_fixtures_creates_tool_dirs(tmp_path: Path) -> None:
+    stubs_dir = tmp_path / "stubs"
+    gen = CaseGenerator(
+        agent="prior-auth-v1",
+        output_dir=tmp_path / "cases",
+        llm_fn=_fake_fixture_llm(_default_fixture_scenarios()),
+        agent_yaml=_make_agent_yaml(["book_appointment"]),
+    )
+    gen.generate_fixtures(stubs_dir=stubs_dir)
+    assert (stubs_dir / "prior-auth-v1" / "book_appointment").is_dir()
+
+
+def test_generate_fixtures_scenario_yaml_is_valid(tmp_path: Path) -> None:
+    stubs_dir = tmp_path / "stubs"
+    gen = CaseGenerator(
+        agent="prior-auth-v1",
+        output_dir=tmp_path / "cases",
+        llm_fn=_fake_fixture_llm(_default_fixture_scenarios()),
+        agent_yaml=_make_agent_yaml(["book_appointment"]),
+    )
+    gen.generate_fixtures(stubs_dir=stubs_dir)
+    confirmed = stubs_dir / "prior-auth-v1" / "book_appointment" / "confirmed.yaml"
+    assert confirmed.exists()
+    data = yaml.safe_load(confirmed.read_text())
+    assert data["status"] == "confirmed"
+
+
+def test_generate_fixtures_at_least_two_scenarios_per_tool(tmp_path: Path) -> None:
+    stubs_dir = tmp_path / "stubs"
+    gen = CaseGenerator(
+        agent="prior-auth-v1",
+        output_dir=tmp_path / "cases",
+        llm_fn=_fake_fixture_llm(_default_fixture_scenarios()),
+        agent_yaml=_make_agent_yaml(["book_appointment"]),
+    )
+    gen.generate_fixtures(stubs_dir=stubs_dir)
+    tool_dir = stubs_dir / "prior-auth-v1" / "book_appointment"
+    fixtures_for_tool = list(tool_dir.glob("*.yaml"))
+    assert len(fixtures_for_tool) >= 2
+
+
+def test_generate_fixtures_covers_multiple_tools(tmp_path: Path) -> None:
+    stubs_dir = tmp_path / "stubs"
+    gen = CaseGenerator(
+        agent="prior-auth-v1",
+        output_dir=tmp_path / "cases",
+        llm_fn=_fake_fixture_llm(_default_fixture_scenarios()),
+        agent_yaml=_make_agent_yaml(["book_appointment", "search_available_slots"]),
+    )
+    gen.generate_fixtures(stubs_dir=stubs_dir)
+    assert (stubs_dir / "prior-auth-v1" / "book_appointment").is_dir()
+    assert (stubs_dir / "prior-auth-v1" / "search_available_slots").is_dir()
+
+
+def test_generate_fixtures_raises_without_agent_yaml(tmp_path: Path) -> None:
+    gen = CaseGenerator(
+        agent="prior-auth-v1",
+        output_dir=tmp_path,
+        llm_fn=_fake_fixture_llm([]),
+    )
+    with pytest.raises(ValueError, match="agent_yaml"):
+        gen.generate_fixtures(stubs_dir=tmp_path / "stubs")
+
+
+def test_generate_fixtures_invalid_json_raises(tmp_path: Path) -> None:
+    def bad_llm(prompt: str, endpoint: str, deployment: str) -> str:
+        return "not valid json {{"
+
+    gen = CaseGenerator(
+        agent="prior-auth-v1",
+        output_dir=tmp_path,
+        llm_fn=bad_llm,
+        agent_yaml=_make_agent_yaml(["book_appointment"]),
+    )
+    with pytest.raises(RuntimeError, match="invalid JSON"):
+        gen.generate_fixtures(stubs_dir=tmp_path / "stubs")
