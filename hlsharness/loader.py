@@ -85,6 +85,7 @@ class CaseLoader:
         base_path: Path,
         agent: str | None = None,
         category: str | None = None,
+        stubs_path: Path | None = None,
     ) -> list[TestCase]:
         """Load all matching test cases from disk.
 
@@ -106,10 +107,13 @@ class CaseLoader:
         Raises
         ------
         CaseValidationError
-            If any matching YAML file fails schema validation.
+            If any matching YAML file fails schema validation or a fixture
+            scenario reference cannot be resolved.
         FileNotFoundError
             If ``base_path`` does not exist.
         """
+        resolved_stubs = stubs_path if stubs_path is not None else base_path.parent / "stubs"
+
         if not base_path.exists():
             raise FileNotFoundError(f"Cases directory not found: {base_path}")
 
@@ -122,7 +126,7 @@ class CaseLoader:
 
         cases = []
         for path in files:
-            case = self._load_file(path)
+            case = self._load_file(path, stubs_path=resolved_stubs)
             if agent and case.agent != agent:
                 continue
             if category and case.category != category:
@@ -131,7 +135,7 @@ class CaseLoader:
 
         return cases
 
-    def _load_file(self, path: Path) -> TestCase:
+    def _load_file(self, path: Path, stubs_path: Path | None = None) -> TestCase:
         """Parse and validate a single YAML file into a TestCase."""
         try:
             with path.open(encoding="utf-8") as f:
@@ -154,13 +158,52 @@ class CaseLoader:
         if "messages" not in data.get("input", {}):
             raise CaseValidationError(f"{path}: 'input' must contain a 'messages' list")
 
+        tool_responses = self._resolve_tool_responses(
+            path, data["agent"], data.get("tool_responses", {}), stubs_path
+        )
+
         return TestCase(
             id=data["id"],
             agent=data["agent"],
             category=data["category"],
             input=data["input"],
-            tool_responses=data["tool_responses"],
+            tool_responses=tool_responses,
             expected=data["expected"],
             metadata=data.get("metadata", {}),
             persona=data.get("persona"),
         )
+
+    def _resolve_tool_responses(
+        self,
+        case_path: Path,
+        agent: str,
+        raw: dict[str, object],
+        stubs_path: Path | None,
+    ) -> dict[str, dict[str, object]]:
+        """Resolve tool_responses: string values are fixture scenario references.
+
+        A string value looks up ``stubs/{agent}/{tool}/{scenario}.yaml`` and
+        substitutes the file's contents. Dict values pass through unchanged.
+        Inline dict values always win — a dict is never treated as a fixture ref.
+        """
+        resolved: dict[str, dict[str, object]] = {}
+        for tool_name, response in raw.items():
+            if isinstance(response, str):
+                sp = stubs_path or Path("stubs")
+                fixture_path = sp / agent / tool_name / f"{response}.yaml"
+                if not fixture_path.exists():
+                    raise CaseValidationError(
+                        f"{case_path}: fixture scenario '{response}' for tool "
+                        f"'{tool_name}' not found at {fixture_path}"
+                    )
+                try:
+                    with fixture_path.open(encoding="utf-8") as f:
+                        fixture_data = yaml.safe_load(f)
+                except yaml.YAMLError as exc:
+                    raise CaseValidationError(f"{fixture_path}: malformed YAML: {exc}") from exc
+                if not isinstance(fixture_data, dict):
+                    raise CaseValidationError(f"{fixture_path}: expected a YAML mapping")
+                resolved[tool_name] = fixture_data
+            else:
+                resolved[tool_name] = response  # type: ignore[assignment]
+        return resolved

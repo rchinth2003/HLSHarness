@@ -109,7 +109,7 @@ def test_metadata_defaults_to_empty_dict(case_dir, tmp_path):
 
 def test_loads_real_cases():
     """Smoke test: the committed stub cases load cleanly."""
-    cases = CaseLoader().load(Path("cases"))
+    cases = CaseLoader().load(Path("cases"), stubs_path=Path("stubs"))
     assert len(cases) == 30
     functional = [c for c in cases if c.category == "functional"]
     assert len(functional) == 3
@@ -120,3 +120,133 @@ def test_loads_real_cases():
     assert len(privacy) == 9
     equity = [c for c in cases if c.category == "equity"]
     assert len(equity) == 9
+
+
+# ── Fixture resolution ────────────────────────────────────────────────────────
+
+FIXTURE_YAML = textwrap.dedent("""\
+    id: TC-FIX
+    agent: scheduling-v1
+    category: functional
+    input:
+      messages:
+        - role: user
+          content: "Book an appointment"
+    tool_responses:
+      search_available_slots: full_slots
+    expected:
+      outcome: booked
+""")
+
+
+def _write_fixture(stubs_dir: Path, agent: str, tool: str, scenario: str, content: dict) -> None:
+    import yaml
+
+    fixture_dir = stubs_dir / agent / tool
+    fixture_dir.mkdir(parents=True, exist_ok=True)
+    (fixture_dir / f"{scenario}.yaml").write_text(yaml.dump(content), encoding="utf-8")
+
+
+def test_fixture_string_reference_resolved(tmp_path: Path):
+    case_dir = tmp_path / "cases" / "scheduling-v1" / "functional"
+    case_dir.mkdir(parents=True)
+    write_case(case_dir, "TC-FIX.yaml", FIXTURE_YAML)
+
+    stubs_dir = tmp_path / "stubs"
+    _write_fixture(
+        stubs_dir, "scheduling-v1", "search_available_slots", "full_slots", {"slots": [1, 2]}
+    )
+
+    cases = CaseLoader().load(tmp_path / "cases", stubs_path=stubs_dir)
+    assert cases[0].tool_responses["search_available_slots"] == {"slots": [1, 2]}
+
+
+def test_inline_dict_passes_through_unchanged(case_dir, tmp_path):
+    write_case(case_dir, "TC-TEST.yaml", VALID_YAML)
+    cases = CaseLoader().load(tmp_path / "cases")
+    assert cases[0].tool_responses["book_appointment"] == {"status": "confirmed"}
+
+
+def test_missing_fixture_raises_validation_error(tmp_path: Path):
+    case_dir = tmp_path / "cases" / "scheduling-v1" / "functional"
+    case_dir.mkdir(parents=True)
+    write_case(case_dir, "TC-FIX.yaml", FIXTURE_YAML)
+
+    stubs_dir = tmp_path / "stubs"
+    stubs_dir.mkdir()
+
+    with pytest.raises(CaseValidationError, match="full_slots"):
+        CaseLoader().load(tmp_path / "cases", stubs_path=stubs_dir)
+
+
+def test_empty_tool_responses_loads_without_fixtures(case_dir, tmp_path):
+    no_tools = VALID_YAML.replace(
+        "tool_responses:\n  book_appointment:\n    status: confirmed\n", "tool_responses: {}\n"
+    )
+    write_case(case_dir, "TC-EMPTY.yaml", no_tools)
+    cases = CaseLoader().load(tmp_path / "cases")
+    assert cases[0].tool_responses == {}
+
+
+def test_multiple_tools_mixed_inline_and_fixture(tmp_path: Path):
+    import textwrap
+
+    mixed = textwrap.dedent("""\
+        id: TC-MIX
+        agent: scheduling-v1
+        category: functional
+        input:
+          messages:
+            - role: user
+              content: "Mix"
+        tool_responses:
+          search_available_slots: full_slots
+          book_appointment:
+            status: confirmed
+        expected:
+          outcome: booked
+    """)
+    case_dir = tmp_path / "cases" / "scheduling-v1" / "functional"
+    case_dir.mkdir(parents=True)
+    write_case(case_dir, "TC-MIX.yaml", mixed)
+
+    stubs_dir = tmp_path / "stubs"
+    _write_fixture(
+        stubs_dir, "scheduling-v1", "search_available_slots", "full_slots", {"slots": ["A", "B"]}
+    )
+
+    cases = CaseLoader().load(tmp_path / "cases", stubs_path=stubs_dir)
+    assert cases[0].tool_responses["search_available_slots"] == {"slots": ["A", "B"]}
+    assert cases[0].tool_responses["book_appointment"] == {"status": "confirmed"}
+
+
+def test_real_functional_cases_load_with_fixtures():
+    cases = CaseLoader().load(Path("cases"), category="functional", stubs_path=Path("stubs"))
+    assert len(cases) == 3
+    for case in cases:
+        for _tool, response in case.tool_responses.items():
+            assert isinstance(response, dict), (
+                f"{case.id}: tool_responses values should be dicts after resolution"
+            )
+
+
+def test_real_full_slots_fixture_has_two_slots():
+    cases = CaseLoader().load(Path("cases"), category="functional", stubs_path=Path("stubs"))
+    tc001 = next(c for c in cases if c.id == "TC-001")
+    slots = tc001.tool_responses["search_available_slots"].get("slots", [])
+    assert len(slots) == 2
+
+
+def test_real_cancel_fixture_resolves_correctly():
+    cases = CaseLoader().load(Path("cases"), category="functional", stubs_path=Path("stubs"))
+    tc002 = next(c for c in cases if c.id == "TC-002")
+    cancel = tc002.tool_responses.get("cancel_appointment", {})
+    assert cancel.get("status") == "cancelled"
+
+
+def test_real_privacy_cases_load_with_fixtures():
+    cases = CaseLoader().load(Path("cases"), category="privacy", stubs_path=Path("stubs"))
+    assert len(cases) == 9
+    for case in cases:
+        for _tool, response in case.tool_responses.items():
+            assert isinstance(response, dict), f"{case.id}: fixture not resolved"

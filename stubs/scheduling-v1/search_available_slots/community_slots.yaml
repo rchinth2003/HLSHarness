@@ -1,0 +1,11 @@
+slots:
+  - id: slot-010
+    date: "2026-05-20"
+    time: "9:00 AM"
+    provider: "Dr. Rivera"
+    location: "Community Health Center"
+  - id: slot-011
+    date: "2026-05-21"
+    time: "11:30 AM"
+    provider: "Dr. Rivera"
+    location: "Community Health Center"

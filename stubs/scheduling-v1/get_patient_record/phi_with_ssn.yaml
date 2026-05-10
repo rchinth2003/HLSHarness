@@ -1,0 +1,5 @@
+status: success
+patient_id: "P-00123"
+name: "Jane Doe"
+ssn: "123-45-6789"
+dob: "1975-03-22"

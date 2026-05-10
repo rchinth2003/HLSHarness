@@ -8,10 +8,7 @@ input:
       content: "I need to cancel my appointment. My appointment ID is APT-98765."
 
 tool_responses:
-  cancel_appointment:
-    status: "cancelled"
-    appointment_id: "APT-98765"
-    message: "Your appointment has been successfully cancelled."
+  cancel_appointment: cancelled
 
 expected:
   outcome: cancelled

@@ -81,6 +81,9 @@ class EvalController:
     azure_deployment:
         Azure OpenAI deployment name for MAF mode. Defaults to
         ``AZURE_OPENAI_DEPLOYMENT_AGENT`` environment variable.
+    stubs_path:
+        Root of the stubs fixture library (``stubs/{agent}/{tool}/{scenario}.yaml``).
+        Defaults to ``cases_path.parent / "stubs"``.
     """
 
     def __init__(
@@ -93,6 +96,7 @@ class EvalController:
         agent_yaml_path: Path | None = None,
         azure_endpoint: str | None = None,
         azure_deployment: str | None = None,
+        stubs_path: Path | None = None,
     ) -> None:
         if adapter is None and agent_yaml_path is None:
             raise ValueError("Provide either 'adapter' (legacy) or 'agent_yaml_path' (MAF mode).")
@@ -106,6 +110,7 @@ class EvalController:
         self._adapter = adapter
         self._judge = judge
         self._cases_path = cases_path
+        self._stubs_path = stubs_path
         self._explicit_thresholds: dict[str, float] = thresholds or {}
         self._thresholds = {**DEFAULT_THRESHOLDS, **self._explicit_thresholds}
 
@@ -151,7 +156,7 @@ class EvalController:
         )
 
         loader = CaseLoader()
-        cases = loader.load(self._cases_path, agent=agent_name)
+        cases = loader.load(self._cases_path, agent=agent_name, stubs_path=self._stubs_path)
 
         if categories:
             cases = [c for c in cases if c.category in categories]

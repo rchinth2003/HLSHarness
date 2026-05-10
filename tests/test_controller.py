@@ -55,12 +55,14 @@ def _make_controller(
     cases_path: Path,
     score: float = 0.9,
     thresholds: dict[str, float] | None = None,
+    stubs_path: Path = Path("stubs"),
 ) -> EvalController:
     return EvalController(
         adapter=_FakeAdapter(),
         judge=_FakeJudge(score=score),
         cases_path=cases_path,
         thresholds=thresholds,
+        stubs_path=stubs_path,
     )
 
 
@@ -160,6 +162,7 @@ def test_manifest_thresholds_override_defaults(tmp_path: Path):
         adapter=_FakeAdapter(),
         judge=_FakeJudge(score=0.9),
         cases_path=tmp_path,
+        stubs_path=Path("stubs"),
     )
     results = controller.run(categories=["functional"])
     functional_summary = next(s for s in results.categories if s.category == "functional")
@@ -186,6 +189,7 @@ def test_manifest_validate_cases_uses_manifest_tools(tmp_path: Path):
         adapter=_FakeAdapter(),
         judge=_FakeJudge(score=0.9),
         cases_path=tmp_path,
+        stubs_path=Path("stubs"),
     )
     results = controller.run(categories=["functional"])
     assert len(results.cases) == 3
@@ -203,6 +207,7 @@ def test_explicit_thresholds_override_manifest(tmp_path: Path):
         judge=_FakeJudge(score=0.9),
         cases_path=tmp_path,
         thresholds={"functional": 0.99},
+        stubs_path=Path("stubs"),
     )
     results = controller.run(categories=["functional"])
     functional_summary = next(s for s in results.categories if s.category == "functional")
@@ -233,6 +238,7 @@ def _make_maf_controller(
             judge=_FakeJudge(score=score),
             cases_path=cases_path,
             thresholds=thresholds,
+            stubs_path=Path("stubs"),
         )
 
 
@@ -261,6 +267,7 @@ def test_maf_yaml_loads_agent_name(tmp_path: Path):
             agent_yaml_path=_agent_yaml_path(),
             judge=_FakeJudge(score=0.9),
             cases_path=tmp_path,
+            stubs_path=Path("stubs"),
         )
 
     assert controller._agent_yaml is not None
@@ -280,6 +287,7 @@ def test_maf_yaml_thresholds_from_x_harness(tmp_path: Path):
             agent_yaml_path=_agent_yaml_path(),
             judge=_FakeJudge(score=0.9),
             cases_path=tmp_path,
+            stubs_path=Path("stubs"),
         )
 
     results = controller.run(categories=["functional"])
@@ -301,6 +309,7 @@ def test_maf_explicit_thresholds_override_yaml(tmp_path: Path):
             judge=_FakeJudge(score=0.9),
             cases_path=tmp_path,
             thresholds={"functional": 0.42},
+            stubs_path=Path("stubs"),
         )
 
     results = controller.run(categories=["functional"])
@@ -337,6 +346,7 @@ def test_maf_upfront_validation_rejects_unknown_tool(tmp_path: Path):
             agent_yaml_path=_agent_yaml_path(),
             judge=_FakeJudge(score=0.9),
             cases_path=tmp_path,
+            stubs_path=Path("stubs"),
         )
 
     with pytest.raises(CaseValidationError, match="undeclared_tool"):
@@ -356,6 +366,7 @@ def test_maf_run_returns_results(tmp_path: Path):
             agent_yaml_path=_agent_yaml_path(),
             judge=_FakeJudge(score=0.9),
             cases_path=tmp_path,
+            stubs_path=Path("stubs"),
         )
         results = controller.run(categories=["functional"])
 
