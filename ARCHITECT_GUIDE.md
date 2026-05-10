@@ -10,6 +10,7 @@ The guide uses a **Prior Authorization (PA)** agent as its running example — t
 
 - [Architecture overview](#architecture-overview)
 - [Component reference](#component-reference)
+- [Onboarding workflow](#onboarding-workflow)
 - [Walkthrough: building PriorAuthAdapter](#walkthrough-building-prioraruthadapter)
   - [1. Subclass AgentAdapter](#1-subclass-agentadapter)
   - [2. Declare tools](#2-declare-tools)
@@ -81,6 +82,10 @@ TestCase (YAML)
 | Component | File | Role |
 |-----------|------|------|
 | `AgentAdapter` | `hlsharness/adapter.py` | Abstract base — declare name, system prompt, tools, `run()` |
+| `AgentManifest` | `hlsharness/manifest.py` | Per-agent schema stored in `cases/{agent}/manifest.yaml`; owns categories, tools, thresholds |
+| `SpecInterpreter` | `hlsharness/spec_interpreter.py` | Parses any spec format (OpenAPI, system prompt, plain English) into an `AgentManifest` |
+| `AdapterScaffolder` | `hlsharness/adapter_scaffolder.py` | Generates a Python adapter stub from an `AgentManifest` |
+| `CaseGenerator` | `hlsharness/generator.py` | Generates YAML test cases via LLM given an agent name, categories, and tool list |
 | `ToolSimulator` | `hlsharness/simulator.py` | Intercepts tool calls, returns scripted responses |
 | `CaseLoader` | `hlsharness/loader.py` | Reads and validates YAML test cases |
 | `EvalController` | `hlsharness/controller.py` | Orchestrates load → validate → run → judge for each case |
@@ -93,7 +98,92 @@ TestCase (YAML)
 
 ---
 
+## Onboarding workflow
+
+The `hls-eval onboard` command automates building a new agent integration. It separates into two phases, each producing a durable artifact that can be reviewed before the next phase runs.
+
+```
+Spec file (OpenAPI / system prompt / plain English)
+      │
+      ▼  hls-eval onboard --spec PATH --agent SLUG
+┌─────────────────────┐
+│   SpecInterpreter   │  calls Azure OpenAI → parses spec → validates schema
+└────────┬────────────┘
+         │
+         ▼
+  cases/{agent}/manifest.yaml   ← review & edit before proceeding
+         │
+         ▼  hls-eval onboard --generate --agent SLUG [--count N]
+┌─────────────────────────────────────────┐
+│  AdapterScaffolder   CaseGenerator      │
+│  (adapter stub)      (YAML cases × N)   │
+└──────────────┬──────────────────────────┘
+               │
+               ├── hlsharness/adapters/{agent_slug}.py   ← fill in run()
+               └── cases/{agent}/{category}/TC-*.yaml    ← review before committing
+```
+
+### AgentManifest schema
+
+`manifest.yaml` is the contract between the two phases and between onboarding and `EvalController`:
+
+```yaml
+agent: prior-auth-v1               # lowercase slug — matches cases/ subdirectory
+description: "Prior auth agent"
+categories:
+  - functional
+  - safety
+  - privacy
+  - equity
+tools:
+  - name: check_coverage
+    description: "Check insurance coverage and PA requirements"
+    parameters:
+      type: object
+      properties:
+        patient_id: {type: string}
+      required: [patient_id]
+thresholds:
+  functional: 0.80
+  safety: 0.90
+  privacy: 1.00
+  equity: 0.90
+system_prompt_hint: "You are a prior authorization specialist..."   # optional
+```
+
+### Threshold priority
+
+`EvalController` resolves thresholds in this order (last wins):
+
+```
+DEFAULT_THRESHOLDS (controller.py)
+  ← manifest.thresholds (cases/{agent}/manifest.yaml)
+    ← explicit thresholds (EvalController constructor argument)
+```
+
+This lets you override thresholds for a single CI run without touching the manifest.
+
+### Injectable `llm_fn` pattern
+
+Both `SpecInterpreter` and `CaseGenerator` accept an optional `llm_fn: Callable[[str], str]` argument. The default implementation calls Azure OpenAI and is marked `# pragma: no cover`. Tests inject a deterministic fake:
+
+```python
+def _fake_llm(payload: object) -> Callable[[str], str]:
+    def _fn(prompt: str) -> str:
+        return json.dumps(payload)
+    return _fn
+
+interp = SpecInterpreter(llm_fn=_fake_llm(manifest_dict))
+result = interp.interpret("any spec text")
+```
+
+This pattern keeps the unit test suite entirely free of Azure credentials.
+
+---
+
 ## Walkthrough: building PriorAuthAdapter
+
+> **Fast path:** `hls-eval onboard --spec prior-auth.yaml --agent prior-auth-v1` followed by `hls-eval onboard --generate --agent prior-auth-v1` generates the adapter stub and seed cases automatically. The walkthrough below explains what the automation produces and how to extend it.
 
 Prior authorization is the workflow where a provider must get insurance approval before performing a procedure or dispensing a medication. Our agent needs to:
 
@@ -368,6 +458,14 @@ No changes are needed to `_FakeJudge` in `tests/test_controller.py` — it imple
 ---
 
 ## Design decisions explained
+
+### Why a two-phase onboarding CLI?
+
+Phase 1 (`--spec`) and Phase 2 (`--generate`) are intentionally separate commands. The manifest written by Phase 1 is a human-reviewable YAML file that an engineer can edit before Phase 2 runs. This makes the automation a starting point, not a black box — a bad spec or hallucinated tool name is caught at review time, not discovered when a case fails.
+
+### Why does `EvalController` load `manifest.yaml`?
+
+Thresholds and tool names differ across agents. Storing them in `manifest.yaml` keeps every agent self-describing: a new agent integration ships its own quality bar alongside its test cases. The controller loads it automatically from `cases/{agent}/manifest.yaml` — no code changes needed.
 
 ### Why `DefaultAzureCredential` instead of API keys?
 

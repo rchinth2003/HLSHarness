@@ -11,6 +11,7 @@ A pluggable, Azure-OpenAI-powered evaluation platform for Health & Life Sciences
 - [Project layout](#project-layout)
 - [Core concepts](#core-concepts)
 - [Running the harness](#running-the-harness)
+- [Onboarding a new agent](#onboarding-a-new-agent)
 - [Adding a test case](#adding-a-test-case)
 - [Adding an adapter](#adding-an-adapter)
 - [Adding a scoring category](#adding-a-scoring-category)
@@ -74,23 +75,27 @@ uv run streamlit run dashboard/app.py -- results.json
 HLSHarness/
 ├── hlsharness/               # Core library (importable, fully typed)
 │   ├── __init__.py
-│   ├── __main__.py           # `hls-eval` CLI entry point
+│   ├── __main__.py           # `hls-eval` CLI entry point (eval + onboard subcommands)
 │   ├── adapter.py            # AgentAdapter ABC + ToolDefinition / AgentResponse
+│   ├── adapter_scaffolder.py # Generates adapter stub Python source from a manifest
 │   ├── adapters/
 │   │   └── scheduling.py     # Concrete scheduling-v1 adapter (Azure OpenAI)
 │   ├── base_scorer.py        # BaseScorer — shared pipeline (veto → pre-check → LLM)
 │   ├── controller.py         # EvalController — orchestrates load → validate → run → judge
 │   ├── equity.py             # EquityAnalyzer — differential-treatment scorer
-│   ├── generator.py          # LLM-powered YAML case generator CLI
+│   ├── generator.py          # LLM-powered YAML case generator
 │   ├── judge.py              # Judge (Scorer protocol + category registry)
 │   ├── loader.py             # CaseLoader — YAML → TestCase
+│   ├── manifest.py           # AgentManifest — per-agent schema, load/write, validation
 │   ├── privacy.py            # PrivacyGuard — PHI disclosure scorer
 │   ├── results.py            # EvalResults / CategorySummary / CaseResult
 │   ├── safety.py             # SafetyEscalator — clinical safety scorer
-│   └── simulator.py          # ToolSimulator — scripted tool-call interception
+│   ├── simulator.py          # ToolSimulator — scripted tool-call interception
+│   └── spec_interpreter.py   # SpecInterpreter — parses OpenAPI/spec → AgentManifest
 │
 ├── cases/                    # YAML test cases (30 committed, LLM-generated ok too)
 │   └── scheduling/
+│       ├── manifest.yaml     # Per-agent manifest (categories, thresholds, tools)
 │       ├── functional/       # TC-001 … TC-003
 │       ├── safety/           # TC-001 … TC-009
 │       ├── privacy/          # TC-001 … TC-009
@@ -247,6 +252,55 @@ Generated cases are written to `cases/{agent}/{category}/` and must pass `CaseLo
 
 ---
 
+## Onboarding a new agent
+
+The `hls-eval onboard` command automates the two-step workflow for adding a new agent: interpreting its spec into a manifest, then generating an adapter stub and seed test cases.
+
+### Phase 1 — spec → manifest
+
+Point the harness at any spec format (OpenAPI JSON/YAML, system prompt, or plain English):
+
+```bash
+uv run hls-eval onboard --spec path/to/prior-auth-openapi.yaml --agent prior-auth-v1
+```
+
+This calls Azure OpenAI to parse the spec and writes `cases/prior-auth-v1/manifest.yaml`:
+
+```yaml
+agent: prior-auth-v1
+description: Prior authorization specialist agent
+categories:
+  - functional
+  - safety
+  - privacy
+  - equity
+tools:
+  - name: check_coverage
+    description: Check insurance coverage and PA requirements
+    parameters: ...
+thresholds:
+  functional: 0.80
+  safety: 0.90
+  privacy: 1.00
+  equity: 0.90
+system_prompt_hint: "You are a prior authorization specialist..."
+```
+
+Review and edit `manifest.yaml` before proceeding to Phase 2.
+
+### Phase 2 — manifest → adapter stub + cases
+
+```bash
+uv run hls-eval onboard --generate --agent prior-auth-v1 --count 5
+```
+
+This reads `cases/prior-auth-v1/manifest.yaml` and:
+
+1. Writes `hlsharness/adapters/prior_auth_v1.py` — a runnable adapter stub with the correct tool declarations and a `NotImplementedError` `run()` placeholder.
+2. Generates `--count` YAML test cases per category under `cases/prior-auth-v1/`.
+
+---
+
 ## Adding a test case
 
 1. Create a YAML file in `cases/{agent}/{category}/TC-NNN.yaml` following the schema above.
@@ -259,6 +313,8 @@ Generated cases are written to `cases/{agent}/{category}/` and must pass `CaseLo
 ---
 
 ## Adding an adapter
+
+The fastest path is `hls-eval onboard` (see [Onboarding a new agent](#onboarding-a-new-agent)). For manual control or to understand what the automation produces, follow these steps:
 
 1. Create `hlsharness/adapters/{your_agent}.py` and subclass `AgentAdapter`.
 
