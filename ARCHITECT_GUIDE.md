@@ -83,13 +83,13 @@ TestCase (YAML)
 | `AgentAdapter` | `hlsharness/adapter.py` | Abstract base — declare name, system prompt, tools, `run()` |
 | `ToolSimulator` | `hlsharness/simulator.py` | Intercepts tool calls, returns scripted responses |
 | `CaseLoader` | `hlsharness/loader.py` | Reads and validates YAML test cases |
-| `EvalController` | `hlsharness/controller.py` | Orchestrates load → run → judge for each case |
-| `Judge` | `hlsharness/judge.py` | Implements the `Scorer` protocol; delegates to category scorers |
+| `EvalController` | `hlsharness/controller.py` | Orchestrates load → validate → run → judge for each case |
+| `Judge` | `hlsharness/judge.py` | Implements `Scorer` protocol; dispatches via category registry |
+| `BaseScorer` | `hlsharness/base_scorer.py` | Shared pipeline: veto → `_pre_llm_check` hook → LLM rubric |
 | `SafetyEscalator` | `hlsharness/safety.py` | Scores safety cases (must-not-contain + LLM rubric) |
 | `PrivacyGuard` | `hlsharness/privacy.py` | Scores privacy cases (PHI regex + LLM rubric) |
 | `EquityAnalyzer` | `hlsharness/equity.py` | Scores equity cases (demographics-aware LLM rubric) |
 | `EvalResults` | `hlsharness/results.py` | Output contract — written to `results.json` |
-| `MetricCollector` | `hlsharness/metrics.py` | Tracks latency + token usage per case |
 
 ---
 
@@ -363,7 +363,7 @@ def test_loads_real_cases():
     assert len(prior_auth) == 2
 ```
 
-Add `score_*` methods to `_FakeJudge` in `tests/test_controller.py` if you add a new category. The `_FakeJudge` must satisfy the `Scorer` protocol — mypy will catch any missing methods.
+No changes are needed to `_FakeJudge` in `tests/test_controller.py` — it implements the single `score(category, case, response)` method of the `Scorer` protocol and handles any category string automatically.
 
 ---
 
@@ -402,19 +402,18 @@ Structural typing (Protocol) lets `_FakeJudge` in tests satisfy the interface wi
 Say you want an `operational` category that checks response time SLAs, token efficiency, and escalation routing. Here's the full checklist:
 
 ```
-1.  hlsharness/operational.py          — new scorer class
+1.  hlsharness/operational.py          — subclass BaseScorer, implement _build_prompt()
 2.  hlsharness/loader.py               — add "operational" to VALID_CATEGORIES
-3.  hlsharness/judge.py                — add score_operational() to Scorer protocol
-4.  hlsharness/judge.py                — implement score_operational() in Judge
-5.  hlsharness/controller.py           — add elif branch in _run_case()
-6.  hlsharness/controller.py           — add "operational": 0.8 to DEFAULT_THRESHOLDS
-7.  cases/{agent}/operational/         — at least 3 YAML cases
-8.  tests/test_controller.py           — add score_operational to _FakeJudge
-9.  tests/test_loader.py               — update case count in test_loads_real_cases
-10. tests/test_operational.py          — unit tests (≥ 80% coverage gate)
+3.  hlsharness/judge.py                — register OperationalScorer in _build_registry()
+4.  hlsharness/controller.py           — add "operational": 0.8 to DEFAULT_THRESHOLDS
+5.  cases/{agent}/operational/         — at least 3 YAML cases
+6.  tests/test_loader.py               — update case count in test_loads_real_cases
+7.  tests/test_operational.py          — unit tests (≥ 80% coverage gate)
 ```
 
-Copy `hlsharness/privacy.py` as a starting template — it's the simplest scorer with a two-stage pipeline (must_not_contain → LLM rubric). Remove the PHI regex layer if your category doesn't need it.
+Copy `hlsharness/safety.py` as a starting template — it's the thinnest scorer, containing only `_build_prompt()` and the rubric string. Remove or override `_pre_llm_check()` if your category needs a regex pre-check (see `privacy.py`).
+
+No changes are needed to `EvalController`, the `Scorer` protocol, or `_FakeJudge` in tests.
 
 ---
 
@@ -426,11 +425,20 @@ The agent called a tool that isn't in `case.tool_responses`. Either:
 - Add the missing tool to `tool_responses` in the YAML.
 - The agent is hallucinating a tool name — tighten the system prompt.
 
-### `CaseValidationError: missing required fields`
+### `CaseValidationError` before the eval loop starts
+
+`EvalController` validates all cases before running any of them. Two checks are enforced:
+
+- **Unknown tool key** — a `tool_responses` key in a YAML case doesn't match any name in `adapter.tools`. Fix the YAML or add the tool to your adapter's `tools` list.
+- **Missing equity metadata** — an `equity` case is missing `patient_age`, `language`, or `insurance` in its `metadata` block. All three are required for equity scoring.
+
+All errors across all cases are collected and reported together in a single exception.
+
+### `ValueError: missing required fields` from CaseLoader
 
 A YAML file is missing one of: `id`, `agent`, `category`, `input`, `tool_responses`, `expected`. Check the file against the schema in `CaseLoader._load_file`.
 
-### `CaseValidationError: invalid category`
+### `ValueError: invalid category` from CaseLoader
 
 The `category` field must be one of `VALID_CATEGORIES` in `loader.py`. If you added a new category, make sure you updated that set.
 
