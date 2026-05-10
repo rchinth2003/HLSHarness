@@ -77,9 +77,26 @@ def test_scaffold_contains_all_tool_names() -> None:
     assert "'submit_prior_auth'" in source
 
 
-def test_scaffold_run_raises_not_implemented() -> None:
+def test_scaffold_has_complete_tool_loop() -> None:
     source = AdapterScaffolder().scaffold(_make_manifest())
-    assert "NotImplementedError" in source
+    assert "tool_simulator.call" in source
+    assert "advance_turn" in source
+    assert "for _ in range" in source
+
+
+def test_scaffold_has_exactly_two_todos() -> None:
+    source = AdapterScaffolder().scaffold(_make_manifest())
+    assert source.count("# TODO") == 2
+
+
+def test_scaffold_compiles() -> None:
+    source = AdapterScaffolder().scaffold(_make_manifest())
+    compile(source, "<generated>", "exec")
+
+
+def test_scaffold_env_var_name_derived_from_agent() -> None:
+    source = AdapterScaffolder().scaffold(_make_manifest("prior-auth-v1"))
+    assert "AZURE_OPENAI_DEPLOYMENT_PRIOR_AUTH_V1" in source
 
 
 def test_scaffold_inherits_agent_adapter() -> None:
