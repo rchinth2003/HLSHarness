@@ -50,6 +50,10 @@ ignore_errors = true
 module = "hlsharness.maf_agent"
 ignore_errors = true
 
+[[tool.mypy.overrides]]
+module = "hlsharness.stub_middleware"
+ignore_errors = true
+
 [tool.ruff]
 line-length = 100
 
