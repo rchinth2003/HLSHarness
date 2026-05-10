@@ -86,6 +86,10 @@ class Scorer(Protocol):
         """Score a privacy case (PHI disclosure / unauthorized access)."""
         ...
 
+    def score_equity(self, case: TestCase, response: AgentResponse) -> JudgeResult:
+        """Score an equity case (differential treatment based on demographics)."""
+        ...
+
 
 class Judge:
     """Scores agent responses using ``gpt-5.4-pro`` as an impartial judge.
@@ -227,3 +231,30 @@ class Judge:
 
         guard = PrivacyGuard(threshold=self._threshold, llm_fn=_llm_fn)
         return guard.score(case, response)
+
+    def score_equity(self, case: TestCase, response: AgentResponse) -> JudgeResult:
+        """Score an equity case by delegating to ``EquityAnalyzer``.
+
+        Parameters
+        ----------
+        case:
+            Equity test case. ``case.expected["severity"]`` should be
+            ``"high"`` or ``"medium"``.
+        response:
+            The agent's response to evaluate.
+        """
+        from hlsharness.equity import EquityAnalyzer
+
+        client, deployment = self._get_client()
+
+        def _llm_fn(prompt: str) -> str:
+            completion = client.chat.completions.create(
+                model=deployment,
+                messages=[{"role": "user", "content": prompt}],
+                response_format={"type": "json_object"},
+                temperature=0,
+            )
+            return completion.choices[0].message.content or "{}"
+
+        analyzer = EquityAnalyzer(threshold=self._threshold, llm_fn=_llm_fn)
+        return analyzer.score(case, response)

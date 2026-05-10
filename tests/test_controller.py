@@ -60,6 +60,13 @@ class _FakeJudge:
             rationale="Fake privacy rationale",
         )
 
+    def score_equity(self, case: TestCase, response: AgentResponse) -> JudgeResult:
+        return JudgeResult(
+            score=self._score,
+            passed=self._score >= 0.9,
+            rationale="Fake equity rationale",
+        )
+
 
 def _make_controller(
     cases_path: Path,
