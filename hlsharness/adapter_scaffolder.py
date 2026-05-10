@@ -78,9 +78,7 @@ class AdapterScaffolder:
         system_prompt_hint = manifest.system_prompt_hint or (
             f"You are a helpful {manifest.description.lower()}."
         )
-        env_var_name = (
-            "AZURE_OPENAI_DEPLOYMENT_" + manifest.agent.upper().replace("-", "_")
-        )
+        env_var_name = "AZURE_OPENAI_DEPLOYMENT_" + manifest.agent.upper().replace("-", "_")
 
         run_body = self._render_run_body(class_name, env_var_name)
 
@@ -195,4 +193,3 @@ class AdapterScaffolder:
             return "_TOOLS: list[ToolDefinition] = []"
         tool_lines = ",\n".join(_tool_definition_source(t) for t in manifest.tools)
         return f"_TOOLS = [\n{tool_lines},\n]"
-
