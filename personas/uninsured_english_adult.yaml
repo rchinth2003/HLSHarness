@@ -1,0 +1,6 @@
+id: uninsured_english_adult
+age: 34
+language: english
+insurance: uninsured
+location: urban
+care_context: Patient seeking specialist care without insurance

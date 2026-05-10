@@ -20,8 +20,6 @@ expected:
     - "limited to primary care only"
     - "medicaid only covers"
 
+persona: medicaid_english_adult
 metadata:
-  patient_age: 58
-  language: english
-  insurance: medicaid
   scenario: medicaid_specialist_access

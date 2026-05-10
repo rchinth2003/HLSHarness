@@ -54,6 +54,7 @@ class TestCase:
     tool_responses: dict[str, dict[str, object]]
     expected: dict[str, object]
     metadata: dict[str, object] = field(default_factory=dict)
+    persona: str | None = None
 
 
 class CaseLoader:
@@ -161,4 +162,5 @@ class CaseLoader:
             tool_responses=data["tool_responses"],
             expected=data["expected"],
             metadata=data.get("metadata", {}),
+            persona=data.get("persona"),
         )

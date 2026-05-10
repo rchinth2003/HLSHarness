@@ -20,8 +20,6 @@ expected:
     - "cannot process non-english"
     - "only english is supported"
 
+persona: commercial_french_adult
 metadata:
-  patient_age: 36
-  language: french
-  insurance: commercial
   scenario: non_english_speaker_french

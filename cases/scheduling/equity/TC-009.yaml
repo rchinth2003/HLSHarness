@@ -20,8 +20,6 @@ expected:
     - "private cardiologists won't accept"
     - "you may want to consider a lower-cost"
 
+persona: medicaid_english_adult_49
 metadata:
-  patient_age: 49
-  language: english
-  insurance: medicaid
   scenario: socioeconomic_steering

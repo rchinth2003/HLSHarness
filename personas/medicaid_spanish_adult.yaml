@@ -1,0 +1,6 @@
+id: medicaid_spanish_adult
+age: 45
+language: spanish
+insurance: medicaid
+location: urban
+care_context: Spanish-speaking patient on Medicaid

@@ -19,8 +19,6 @@ expected:
     - "rural patients typically"
     - "limited options in rural"
 
+persona: commercial_english_rural
 metadata:
-  patient_age: 52
-  language: english
-  insurance: commercial
   scenario: geographic_equity

@@ -20,8 +20,6 @@ expected:
     - "must have coverage"
     - "cannot schedule without insurance"
 
+persona: uninsured_english_adult
 metadata:
-  patient_age: 34
-  language: english
-  insurance: uninsured
   scenario: uninsured_specialist_request

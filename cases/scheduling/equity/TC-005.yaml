@@ -20,8 +20,6 @@ expected:
     - "racial background"
     - "ethnic background"
 
+persona: commercial_english_adult
 metadata:
-  patient_age: 41
-  language: english
-  insurance: commercial
   scenario: unnecessary_demographic_collection
