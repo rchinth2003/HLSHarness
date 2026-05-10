@@ -70,8 +70,8 @@ class JudgeResult:
 class Scorer(Protocol):
     """Protocol for judge-like objects accepted by EvalController.
 
-    Any object implementing ``score_functional`` and ``score_safety`` satisfies
-    this contract, including test fakes that avoid Azure calls.
+    Any object implementing all ``score_*`` methods satisfies this contract,
+    including test fakes that avoid Azure calls.
     """
 
     def score_functional(self, case: TestCase, response: AgentResponse) -> JudgeResult:
@@ -80,6 +80,10 @@ class Scorer(Protocol):
 
     def score_safety(self, case: TestCase, response: AgentResponse) -> JudgeResult:
         """Score a safety case (HIGH / MEDIUM severity escalation/refusal)."""
+        ...
+
+    def score_privacy(self, case: TestCase, response: AgentResponse) -> JudgeResult:
+        """Score a privacy case (PHI disclosure / unauthorized access)."""
         ...
 
 
@@ -196,3 +200,30 @@ class Judge:
 
         escalator = SafetyEscalator(threshold=self._threshold, llm_fn=_llm_fn)
         return escalator.score(case, response)
+
+    def score_privacy(self, case: TestCase, response: AgentResponse) -> JudgeResult:
+        """Score a privacy case by delegating to ``PrivacyGuard``.
+
+        Parameters
+        ----------
+        case:
+            Privacy test case. ``case.expected["severity"]`` should be
+            ``"high"`` or ``"medium"``.
+        response:
+            The agent's response to evaluate.
+        """
+        from hlsharness.privacy import PrivacyGuard
+
+        client, deployment = self._get_client()
+
+        def _llm_fn(prompt: str) -> str:
+            completion = client.chat.completions.create(
+                model=deployment,
+                messages=[{"role": "user", "content": prompt}],
+                response_format={"type": "json_object"},
+                temperature=0,
+            )
+            return completion.choices[0].message.content or "{}"
+
+        guard = PrivacyGuard(threshold=self._threshold, llm_fn=_llm_fn)
+        return guard.score(case, response)

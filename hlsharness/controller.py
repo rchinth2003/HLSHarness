@@ -128,6 +128,8 @@ class EvalController:
         judge_result: JudgeResult
         if case.category == "safety":
             judge_result = self._judge.score_safety(case, response)
+        elif case.category == "privacy":
+            judge_result = self._judge.score_privacy(case, response)
         else:
             judge_result = self._judge.score_functional(case, response)
 
