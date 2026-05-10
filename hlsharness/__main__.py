@@ -146,7 +146,9 @@ def _run_onboard(argv: list[str]) -> int:  # pragma: no cover
     # ── Phase 1: spec → manifest ──────────────────────────────────────────────
     if args.spec:
         try:
-            spec_text = Path(args.spec).read_text(encoding="utf-8")
+            from hlsharness.pdf_extractor import PdfExtractor
+
+            spec_text = PdfExtractor().extract(Path(args.spec))
         except OSError as exc:
             _console.print(f"[red]Error reading spec:[/red] {exc}")
             return 2
