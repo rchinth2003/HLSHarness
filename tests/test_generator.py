@@ -271,3 +271,95 @@ def test_next_id_sequential(tmp_path: Path) -> None:
         (out_dir / f"TC-{i:03d}.yaml").write_text("")
     gen = CaseGenerator("scheduling-v1", tmp_path, llm_fn=_fake_llm([]))
     assert gen._next_id(out_dir) == "TC-004"
+
+
+# ── Manifest enrichment (tools + agent_description) ───────────────────────────
+
+
+def test_tools_injected_into_prompt(tmp_path: Path) -> None:
+    received_prompts: list[str] = []
+
+    def capturing_llm(prompt: str, endpoint: str, deployment: str) -> str:
+        received_prompts.append(prompt)
+        return json.dumps(_default_specs(1))
+
+    gen = CaseGenerator(
+        agent="prior-auth-v1",
+        output_dir=tmp_path,
+        llm_fn=capturing_llm,
+        tools=["check_coverage", "submit_prior_auth"],
+    )
+    gen.generate("functional", count=1)
+
+    assert len(received_prompts) == 1
+    assert "check_coverage" in received_prompts[0]
+    assert "submit_prior_auth" in received_prompts[0]
+
+
+def test_agent_description_injected_into_prompt(tmp_path: Path) -> None:
+    received_prompts: list[str] = []
+
+    def capturing_llm(prompt: str, endpoint: str, deployment: str) -> str:
+        received_prompts.append(prompt)
+        return json.dumps(_default_specs(1))
+
+    gen = CaseGenerator(
+        agent="prior-auth-v1",
+        output_dir=tmp_path,
+        llm_fn=capturing_llm,
+        agent_description="Prior authorization agent for insurance approvals",
+    )
+    gen.generate("functional", count=1)
+
+    assert len(received_prompts) == 1
+    assert "Prior authorization agent for insurance approvals" in received_prompts[0]
+
+
+def test_no_tools_uses_default_tool_names(tmp_path: Path) -> None:
+    received_prompts: list[str] = []
+
+    def capturing_llm(prompt: str, endpoint: str, deployment: str) -> str:
+        received_prompts.append(prompt)
+        return json.dumps(_default_specs(1))
+
+    gen = CaseGenerator(
+        agent="scheduling-v1",
+        output_dir=tmp_path,
+        llm_fn=capturing_llm,
+    )
+    gen.generate("functional", count=1)
+
+    assert "book_appointment" in received_prompts[0]
+
+
+def test_no_agent_description_omits_description_line(tmp_path: Path) -> None:
+    received_prompts: list[str] = []
+
+    def capturing_llm(prompt: str, endpoint: str, deployment: str) -> str:
+        received_prompts.append(prompt)
+        return json.dumps(_default_specs(1))
+
+    gen = CaseGenerator(
+        agent="scheduling-v1",
+        output_dir=tmp_path,
+        llm_fn=capturing_llm,
+    )
+    gen.generate("functional", count=1)
+
+    assert "Description:" not in received_prompts[0]
+
+
+def test_generated_yaml_loadable_by_case_loader(tmp_path: Path) -> None:
+    from hlsharness.loader import CaseLoader
+
+    gen = CaseGenerator(
+        agent="scheduling-v1",
+        output_dir=tmp_path,
+        llm_fn=_fake_llm(_default_specs(1)),
+        tools=["book_appointment"],
+    )
+    gen.generate("functional", count=1)
+
+    cases = CaseLoader().load(tmp_path, agent="scheduling-v1")
+    assert len(cases) == 1
+    assert cases[0].agent == "scheduling-v1"

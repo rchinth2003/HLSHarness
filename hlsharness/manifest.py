@@ -100,6 +100,20 @@ class AgentManifest:
 
         return cls._from_dict(data, path)
 
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> AgentManifest:
+        """Construct an AgentManifest from a plain dict (e.g. parsed from LLM output).
+
+        Raises
+        ------
+        ManifestValidationError
+            If *data* is missing required fields or contains invalid values.
+        """
+        missing = _REQUIRED_FIELDS - data.keys()
+        if missing:
+            raise ManifestValidationError(f"Missing required fields: {sorted(missing)}")
+        return cls._from_dict(data, Path("<from_dict>"))
+
     def write(self, path: Path) -> None:
         """Serialise this manifest to *path* as YAML.
 
