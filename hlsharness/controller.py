@@ -125,6 +125,11 @@ class EvalController:
         response = self._adapter.run(messages, simulator)
         latency_ms = (time.perf_counter() - start) * 1000
 
+        assert response is not None, (
+            f"{type(self._adapter).__name__}.run() returned None — "
+            "adapter must return an AgentResponse"
+        )
+
         judge_result = self._judge.score(case.category, case, response)
 
         collector.record(

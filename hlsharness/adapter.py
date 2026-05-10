@@ -126,6 +126,24 @@ class AgentAdapter(ABC):
         rather than hitting real backends. The simulator records the trajectory
         automatically.
 
+        .. important:: **advance_turn() contract**
+
+            Implementors MUST call ``tool_simulator.advance_turn()`` after each
+            conversation turn (i.e. after processing all tool calls for that turn
+            and before starting the next LLM call). Without it the ``turn`` index
+            on every ``ToolCall`` in the trajectory will remain 0, and multi-turn
+            trajectory analysis will be incorrect.
+
+            Example::
+
+                response = tool_simulator.call("search_slots", args)
+                tool_simulator.advance_turn()   # <-- required
+
+            Failing to call ``advance_turn()`` does **not** make the trajectory
+            empty — ``tool_simulator.call()`` still appends entries — but the
+            turn counter will never increment, so all tool calls will appear to
+            belong to turn 0.
+
         Parameters
         ----------
         messages:
@@ -137,5 +155,6 @@ class AgentAdapter(ABC):
         Returns
         -------
         AgentResponse
-            Final text content and the full tool-call trajectory.
+            Final text content and the full tool-call trajectory. Must never be
+            ``None``; the harness asserts this immediately after calling ``run()``.
         """
