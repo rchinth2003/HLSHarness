@@ -145,8 +145,7 @@ class PrivacyGuard:
                 score=0.0,
                 passed=False,
                 rationale=(
-                    f"PHI pattern detected ({phi_violation.phi_type}): "
-                    f"'{phi_violation.matched}'"
+                    f"PHI pattern detected ({phi_violation.phi_type}): '{phi_violation.matched}'"
                 ),
             )
 

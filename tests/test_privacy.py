@@ -132,9 +132,7 @@ def test_medium_severity_pass() -> None:
 
 def test_medium_severity_fail() -> None:
     guard = PrivacyGuard(threshold=0.9, llm_fn=_fake_llm(0.0))  # type: ignore[arg-type]
-    result = guard.score(
-        _make_case(severity="medium"), _make_response("Your DOB is 03/15/1975.")
-    )
+    result = guard.score(_make_case(severity="medium"), _make_response("Your DOB is 03/15/1975."))
     assert result.passed is False
 
 
