@@ -73,6 +73,8 @@ class AgentResponse:
 
     content: str
     trajectory: list[ToolCall] = field(default_factory=list)
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
 
 
 class AgentAdapter(ABC):
