@@ -115,7 +115,9 @@ class AgentAdapter(ABC):
         """
 
     @abstractmethod
-    def run(self, messages: list[dict[str, object]], tool_simulator: ToolSimulator) -> AgentResponse:
+    def run(
+        self, messages: list[dict[str, object]], tool_simulator: ToolSimulator
+    ) -> AgentResponse:
         """Execute a single multi-turn agent conversation.
 
         The adapter must route all tool calls through ``tool_simulator.call()``
