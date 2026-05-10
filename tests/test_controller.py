@@ -207,3 +207,175 @@ def test_explicit_thresholds_override_manifest(tmp_path: Path):
     results = controller.run(categories=["functional"])
     functional_summary = next(s for s in results.categories if s.category == "functional")
     assert functional_summary.threshold == 0.99
+
+
+# ── MAF agent.yaml integration ────────────────────────────────────────────────
+
+
+def _agent_yaml_path() -> Path:
+    """Path to the real scheduling-v1 agent.yaml."""
+    return Path("cases/scheduling-v1/agent.yaml")
+
+
+def _make_maf_controller(
+    cases_path: Path,
+    score: float = 0.9,
+    thresholds: dict[str, float] | None = None,
+    mock_maf_agent: object | None = None,
+) -> EvalController:
+    """Build an EvalController in MAF mode with a mocked MAF agent."""
+    from unittest.mock import patch
+
+    agent_yaml = _agent_yaml_path()
+    with patch("hlsharness.maf_agent.build_maf_agent", return_value=mock_maf_agent):
+        return EvalController(
+            agent_yaml_path=agent_yaml,
+            judge=_FakeJudge(score=score),
+            cases_path=cases_path,
+            thresholds=thresholds,
+        )
+
+
+def _make_fake_maf_agent(content: str = "Appointment booked.") -> object:
+    """Create a minimal fake MAF agent whose run() returns a canned response."""
+    from unittest.mock import AsyncMock, MagicMock
+
+    fake_response = MagicMock()
+    fake_response.text = content
+
+    fake_agent = MagicMock()
+    fake_agent.run = AsyncMock(return_value=fake_response)
+    return fake_agent
+
+
+def test_maf_yaml_loads_agent_name(tmp_path: Path):
+    """EvalController in MAF mode reads agent name from agent.yaml."""
+    import shutil
+    from unittest.mock import patch
+
+    shutil.copytree("cases/scheduling", tmp_path / "scheduling")
+
+    fake_agent = _make_fake_maf_agent()
+    with patch("hlsharness.maf_agent.build_maf_agent", return_value=fake_agent):
+        controller = EvalController(
+            agent_yaml_path=_agent_yaml_path(),
+            judge=_FakeJudge(score=0.9),
+            cases_path=tmp_path,
+        )
+
+    assert controller._agent_yaml is not None
+    assert controller._agent_yaml.name == "scheduling-v1"
+
+
+def test_maf_yaml_thresholds_from_x_harness(tmp_path: Path):
+    """EvalController applies x-harness thresholds from agent.yaml."""
+    import shutil
+    from unittest.mock import patch
+
+    shutil.copytree("cases/scheduling", tmp_path / "scheduling")
+
+    fake_agent = _make_fake_maf_agent()
+    with patch("hlsharness.maf_agent.build_maf_agent", return_value=fake_agent):
+        controller = EvalController(
+            agent_yaml_path=_agent_yaml_path(),
+            judge=_FakeJudge(score=0.9),
+            cases_path=tmp_path,
+        )
+
+    results = controller.run(categories=["functional"])
+    functional_summary = next(s for s in results.categories if s.category == "functional")
+    assert functional_summary.threshold == 0.8  # from agent.yaml x-harness.thresholds
+
+
+def test_maf_explicit_thresholds_override_yaml(tmp_path: Path):
+    """Explicit thresholds override x-harness thresholds from agent.yaml."""
+    import shutil
+    from unittest.mock import patch
+
+    shutil.copytree("cases/scheduling", tmp_path / "scheduling")
+
+    fake_agent = _make_fake_maf_agent()
+    with patch("hlsharness.maf_agent.build_maf_agent", return_value=fake_agent):
+        controller = EvalController(
+            agent_yaml_path=_agent_yaml_path(),
+            judge=_FakeJudge(score=0.9),
+            cases_path=tmp_path,
+            thresholds={"functional": 0.42},
+        )
+
+    results = controller.run(categories=["functional"])
+    functional_summary = next(s for s in results.categories if s.category == "functional")
+    assert functional_summary.threshold == 0.42
+
+
+def test_maf_upfront_validation_rejects_unknown_tool(tmp_path: Path):
+    """Upfront validation raises CaseValidationError for tool not in agent.yaml."""
+    import shutil
+    from unittest.mock import patch
+
+    import yaml
+
+    from hlsharness.controller import CaseValidationError
+
+    # Write a case that references a tool not declared in agent.yaml
+    shutil.copytree("cases/scheduling", tmp_path / "scheduling")
+    bad_case = {
+        "id": "TC-BAD",
+        "agent": "scheduling-v1",
+        "category": "functional",
+        "input": {"messages": [{"role": "user", "content": "Book me."}]},
+        "tool_responses": {"undeclared_tool": {"result": "oops"}},
+        "expected": {"outcome": "booked"},
+    }
+    (tmp_path / "scheduling" / "functional" / "TC-BAD.yaml").write_text(
+        yaml.dump(bad_case), encoding="utf-8"
+    )
+
+    fake_agent = _make_fake_maf_agent()
+    with patch("hlsharness.maf_agent.build_maf_agent", return_value=fake_agent):
+        controller = EvalController(
+            agent_yaml_path=_agent_yaml_path(),
+            judge=_FakeJudge(score=0.9),
+            cases_path=tmp_path,
+        )
+
+    with pytest.raises(CaseValidationError, match="undeclared_tool"):
+        controller.run(categories=["functional"])
+
+
+def test_maf_run_returns_results(tmp_path: Path):
+    """EvalController in MAF mode produces EvalResults from scheduling cases."""
+    import shutil
+    from unittest.mock import patch
+
+    shutil.copytree("cases/scheduling", tmp_path / "scheduling")
+
+    fake_agent = _make_fake_maf_agent("Your appointment is confirmed.")
+    with patch("hlsharness.maf_agent.build_maf_agent", return_value=fake_agent):
+        controller = EvalController(
+            agent_yaml_path=_agent_yaml_path(),
+            judge=_FakeJudge(score=0.9),
+            cases_path=tmp_path,
+        )
+        results = controller.run(categories=["functional"])
+
+    assert len(results.cases) == 3
+    assert all(r.agent == "scheduling-v1" for r in results.cases)
+    assert results.passed is True
+
+
+def test_maf_requires_either_adapter_or_yaml():
+    """EvalController raises ValueError when neither adapter nor agent_yaml_path given."""
+    with pytest.raises(ValueError, match="adapter"):
+        EvalController(judge=_FakeJudge(), cases_path=Path("cases"))
+
+
+def test_maf_rejects_both_adapter_and_yaml():
+    """EvalController raises ValueError when both adapter and agent_yaml_path given."""
+    with pytest.raises(ValueError, match="not both"):
+        EvalController(
+            adapter=_FakeAdapter(),
+            agent_yaml_path=_agent_yaml_path(),
+            judge=_FakeJudge(),
+            cases_path=Path("cases"),
+        )

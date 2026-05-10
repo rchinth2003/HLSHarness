@@ -5,6 +5,7 @@ description = "Generic HLS agent evaluation harness — pluggable, multi-agent, 
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "agent-framework>=1.3.0",
     "azure-identity>=1.25.3",
     "openai>=2.36.0",
     "pypdf>=4.0.0",
@@ -24,16 +25,17 @@ dev = [
     "pytest-cov>=7.1.0",
     "ruff>=0.15.12",
 ]
-spike = [
-    "agent-framework[openai]>=1.3.0",
-]
+spike = []  # agent-framework promoted to main deps in Slice 15B
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--cov=hlsharness --cov-report=term-missing --cov-fail-under=80"
 
 [tool.coverage.run]
-omit = ["hlsharness/adapters/*.py"]  # adapters require Azure; tested via integration
+omit = [
+    "hlsharness/adapters/*.py",  # adapters require Azure; tested via integration
+    "hlsharness/maf_agent.py",   # build_maf_agent requires Azure; tested via integration
+]
 
 [tool.mypy]
 python_version = "3.12"
@@ -42,6 +44,10 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "hlsharness.adapters.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "hlsharness.maf_agent"
 ignore_errors = true
 
 [tool.ruff]
