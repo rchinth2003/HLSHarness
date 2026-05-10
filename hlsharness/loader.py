@@ -116,7 +116,8 @@ class CaseLoader:
             raise ValueError(f"Invalid category '{category}'. Must be one of: {VALID_CATEGORIES}")
 
         pattern = "**/*.yaml"
-        files = sorted(f for f in base_path.glob(pattern) if f.name != "manifest.yaml")
+        _excluded = {"manifest.yaml", "agent.yaml"}
+        files = sorted(f for f in base_path.glob(pattern) if f.name not in _excluded)
 
         cases = []
         for path in files:
