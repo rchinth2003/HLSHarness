@@ -96,8 +96,13 @@ def cmd_run(args: argparse.Namespace) -> int:
     _console.print(f"\nOverall: {overall}\n")
 
     if args.serve:
-        _console.print(
-            "[yellow]--serve: Streamlit dashboard coming in Slice 3.[/yellow]"
+        import subprocess
+
+        dashboard = Path(__file__).parent / "dashboard" / "app.py"
+        _console.print(f"\n[bold]Launching dashboard …[/bold] {dashboard}\n")
+        subprocess.run(
+            ["streamlit", "run", str(dashboard), "--", str(output_path)],
+            check=False,
         )
 
     return 0 if results.passed else 1
@@ -111,20 +116,12 @@ def main() -> int:
     sub = parser.add_subparsers(dest="command", required=True)
 
     run_p = sub.add_parser("run", help="Run evaluation against an agent")
-    run_p.add_argument(
-        "--agent", required=True, help="Agent name (e.g. scheduling-v1)"
-    )
+    run_p.add_argument("--agent", required=True, help="Agent name (e.g. scheduling-v1)")
     run_p.add_argument("--cases", default="cases", help="Path to cases directory")
     run_p.add_argument("--output", default="results.json", help="Output JSON path")
-    run_p.add_argument(
-        "--threshold", type=float, default=0.8, help="Pass threshold (default 0.8)"
-    )
-    run_p.add_argument(
-        "--categories", nargs="*", help="Limit to specific categories"
-    )
-    run_p.add_argument(
-        "--serve", action="store_true", help="Launch Streamlit after run"
-    )
+    run_p.add_argument("--threshold", type=float, default=0.8, help="Pass threshold (default 0.8)")
+    run_p.add_argument("--categories", nargs="*", help="Limit to specific categories")
+    run_p.add_argument("--serve", action="store_true", help="Launch Streamlit after run")
 
     args = parser.parse_args()
     if args.command == "run":
