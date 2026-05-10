@@ -12,14 +12,14 @@ Prove (or disprove) that FunctionMiddleware can:
 
 SETUP
 -----
-    pip install -r spike/requirements.txt
+    uv sync --group spike
     export AZURE_OPENAI_ENDPOINT=https://<your-resource>.openai.azure.com/
     export AZURE_OPENAI_DEPLOYMENT_AGENT=<your-gpt-deployment>
-    export AZURE_OPENAI_API_KEY=<your-key>   # or use az login + managed identity
+    az login   # DefaultAzureCredential — no API key needed
 
 RUN
 ---
-    python spike/maf_stub_middleware_spike.py
+    uv run python spike/maf_stub_middleware_spike.py
 
 All five hypotheses print PASS or FAIL with evidence.
 """
@@ -29,12 +29,10 @@ from __future__ import annotations
 import asyncio
 import os
 from contextvars import ContextVar
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
-from dotenv import load_dotenv
-
-load_dotenv()
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
 # ---------------------------------------------------------------------------
 # ContextVar that EvalController will set per case
@@ -114,10 +112,14 @@ def search_available_slots(provider_id: str, date: str) -> dict[str, Any]:  # ty
 
 
 def build_agent(middleware: StubToolMiddleware) -> Agent:
+    credential = DefaultAzureCredential()
+    token_provider = get_bearer_token_provider(
+        credential, "https://cognitiveservices.azure.com/.default"
+    )
     client = AzureOpenAIChatClient(
         endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
         deployment=os.environ["AZURE_OPENAI_DEPLOYMENT_AGENT"],
-        api_key=os.environ.get("AZURE_OPENAI_API_KEY"),
+        azure_ad_token_provider=token_provider,
     )
     return Agent(
         client=client,
@@ -208,7 +210,7 @@ async def run_spike() -> None:
     # Case B: no availability — different scripted response
     case_b = {"search_available_slots": {"slots": []}}
     token_b = _stub_responses.set(case_b)
-    middleware2.trajectory.clear()  # reset for second case
+    middleware2.trajectory.clear()  # reset between cases
     await agent2.run("Find slots for provider P-B on 2026-05-20")
     _stub_responses.reset(token_b)
 
@@ -218,7 +220,7 @@ async def run_spike() -> None:
         results["H5_isolation"] = isolated
         status = "PASS" if isolated else "FAIL"
         print(f"  Case B response: {last_response}")
-        print(f"  {status}: response is case-B scripted value (empty slots), not case-A bleed-through")
+        print(f"  {status}: response is case-B scripted value, not case-A bleed-through")
     else:
         results["H5_isolation"] = False
         print("  FAIL: no trajectory entries for case B")
@@ -232,7 +234,9 @@ async def run_spike() -> None:
         icon = "✓" if passed else "✗"
         print(f"  {icon} {name}: {'PASS' if passed else 'FAIL'}")
 
-    print(f"\n{'ALL HYPOTHESES CONFIRMED — proceed to Slice 15B' if all_pass else 'FAILURES DETECTED — review alternative approach before proceeding'}")
+    print(
+        f"\n{'ALL HYPOTHESES CONFIRMED — proceed to Slice 15B' if all_pass else 'FAILURES DETECTED — review alternative approach before proceeding'}"
+    )
 
     if not all_pass:
         print("\nNext steps if failures:")
@@ -244,11 +248,13 @@ async def run_spike() -> None:
 
 
 if __name__ == "__main__":
-    # Validate required env vars before starting
-    missing = [v for v in ("AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOYMENT_AGENT") if not os.environ.get(v)]
+    missing = [
+        v for v in ("AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOYMENT_AGENT")
+        if not os.environ.get(v)
+    ]
     if missing:
         print(f"ERROR: missing environment variables: {', '.join(missing)}")
-        print("Copy .env.example to .env and fill in your Azure OpenAI credentials.")
+        print("Set these in your shell or .env file. Auth uses az login — no API key needed.")
         raise SystemExit(1)
 
     asyncio.run(run_spike())
