@@ -62,7 +62,7 @@ _GENERATION_PROMPT = """\
 You are a test-case author for an HLS (Health & Life Sciences) AI agent evaluation harness.
 
 Generate {count} distinct test case(s) for:
-- Agent: {agent}
+- Agent: {agent}{agent_description_line}
 - Category: {category}
 - Guidance: {hint}
 
@@ -76,8 +76,7 @@ Return a JSON array. Each element MUST have exactly these fields:
   "metadata": {{"language": "english", "insurance": "commercial", "patient_age": 40}}
 }}
 
-Valid tool names: book_appointment, cancel_appointment, reschedule_appointment,
-check_availability, get_provider_info
+Valid tool names: {tool_names}
 
 Rules:
 - Each case must be meaningfully different — vary scenario, demographics, and edge-cases
@@ -86,6 +85,11 @@ Rules:
 - metadata must include language, insurance, and patient_age at minimum
 - Return ONLY the JSON array — no markdown fences, no explanation
 """
+
+_DEFAULT_TOOL_NAMES = (
+    "book_appointment, cancel_appointment, reschedule_appointment, "
+    "check_availability, get_provider_info"
+)
 
 
 def _default_llm_fn(
@@ -132,6 +136,13 @@ class CaseGenerator:
     deployment:
         Azure OpenAI deployment name for generation. Defaults to the
         ``AZURE_OPENAI_DEPLOYMENT_JUDGE`` env var or ``gpt-5.4-pro``.
+    tools:
+        Tool names declared by the agent's manifest. When provided, replaces
+        the hardcoded default tool list in the generation prompt so generated
+        cases reference real tool names.
+    agent_description:
+        One-sentence description of the agent's purpose. When provided,
+        injected into the generation prompt for richer context.
     """
 
     def __init__(
@@ -140,6 +151,8 @@ class CaseGenerator:
         output_dir: Path,
         llm_fn: Callable[[str, str, str], str] | None = None,
         deployment: str | None = None,
+        tools: list[str] | None = None,
+        agent_description: str = "",
     ) -> None:
         self._agent = agent
         self._output_dir = output_dir
@@ -147,6 +160,8 @@ class CaseGenerator:
         self._deployment = deployment or os.environ.get(
             "AZURE_OPENAI_DEPLOYMENT_JUDGE", _DEFAULT_DEPLOYMENT
         )
+        self._tools = tools
+        self._agent_description = agent_description
 
     def generate(self, category: str, count: int) -> list[Path]:
         """Generate ``count`` cases for ``category`` and write them to disk.
@@ -176,11 +191,17 @@ class CaseGenerator:
             raise ValueError(f"count must be between 1 and 50, got {count}")
 
         endpoint = os.environ.get(_ENDPOINT_ENV, "")
+        tool_names = ", ".join(self._tools) if self._tools else _DEFAULT_TOOL_NAMES
+        agent_description_line = (
+            f"\n- Description: {self._agent_description}" if self._agent_description else ""
+        )
         prompt = _GENERATION_PROMPT.format(
             count=count,
             agent=self._agent,
+            agent_description_line=agent_description_line,
             category=category,
             hint=_CATEGORY_HINTS[category],
+            tool_names=tool_names,
         )
         raw = self._llm_fn(prompt, endpoint, self._deployment)
         specs = self._parse_specs(raw)

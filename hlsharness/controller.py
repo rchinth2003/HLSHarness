@@ -16,6 +16,7 @@ from rich.console import Console
 from hlsharness.adapter import AgentAdapter
 from hlsharness.judge import Scorer
 from hlsharness.loader import CaseLoader, TestCase
+from hlsharness.manifest import AgentManifest
 from hlsharness.results import CaseResult, CategorySummary, EvalResults
 from hlsharness.simulator import ToolSimulator
 
@@ -68,7 +69,8 @@ class EvalController:
         self._adapter = adapter
         self._judge = judge
         self._cases_path = cases_path
-        self._thresholds = {**DEFAULT_THRESHOLDS, **(thresholds or {})}
+        self._explicit_thresholds: dict[str, float] = thresholds or {}
+        self._thresholds = {**DEFAULT_THRESHOLDS, **self._explicit_thresholds}
 
     def run(self, categories: list[str] | None = None) -> EvalResults:
         """Execute all matching cases and return a complete ``EvalResults``.
@@ -100,7 +102,14 @@ class EvalController:
                 f"No cases found for agent '{self._adapter.name}' at {self._cases_path}"
             )
 
-        self._validate_cases(cases)
+        manifest = self._load_manifest()
+        effective_thresholds = {
+            **DEFAULT_THRESHOLDS,
+            **(manifest.thresholds if manifest else {}),
+            **self._explicit_thresholds,
+        }
+
+        self._validate_cases(cases, manifest=manifest)
 
         case_results: list[CaseResult] = []
 
@@ -118,7 +127,7 @@ class EvalController:
             )
 
         categories_present = sorted({r.category for r in case_results})
-        category_summaries = self._summarize(case_results, categories_present)
+        category_summaries = self._summarize(case_results, categories_present, effective_thresholds)
 
         return EvalResults.create(
             agent=self._adapter.name,
@@ -126,14 +135,25 @@ class EvalController:
             categories=category_summaries,
         )
 
-    def _validate_cases(self, cases: list[TestCase]) -> None:
+    def _load_manifest(self) -> AgentManifest | None:
+        """Return the agent's manifest if one exists at cases/{agent}/manifest.yaml."""
+        path = self._cases_path / self._adapter.name / "manifest.yaml"
+        if path.exists():
+            return AgentManifest.load(path)
+        return None
+
+    def _validate_cases(self, cases: list[TestCase], manifest: AgentManifest | None = None) -> None:
         """Validate all cases before the eval loop; raise CaseValidationError if any fail.
 
         Checks:
-        1. tool_responses keys match adapter.tools names.
+        1. tool_responses keys match declared tool names (manifest or adapter.tools).
         2. Equity cases have required metadata keys (patient_age, language, insurance).
         """
-        valid_tools = {t.name for t in self._adapter.tools}
+        valid_tools = (
+            {t.name for t in manifest.tools}
+            if manifest is not None
+            else {t.name for t in self._adapter.tools}
+        )
         errors: list[str] = []
 
         for case in cases:
@@ -189,14 +209,16 @@ class EvalController:
         self,
         case_results: list[CaseResult],
         categories: list[str],
+        thresholds: dict[str, float] | None = None,
     ) -> list[CategorySummary]:
         """Build per-category summaries and apply threshold decisions."""
+        effective = thresholds if thresholds is not None else self._thresholds
         summaries = []
         for cat in categories:
             cat_cases = [r for r in case_results if r.category == cat]
             passed_count = sum(1 for r in cat_cases if r.passed)
             pass_rate = passed_count / len(cat_cases) if cat_cases else 0.0
-            threshold = self._thresholds.get(cat, 0.8)
+            threshold = effective.get(cat, 0.8)
             summaries.append(
                 CategorySummary(
                     category=cat,

@@ -123,3 +123,87 @@ def test_results_contain_metadata():
     results = _make_controller(Path("cases")).run(categories=["functional"])
     tc003 = next(r for r in results.cases if r.case_id == "TC-003")
     assert tc003.metadata.get("language") == "spanish"
+
+
+# ── Manifest integration ──────────────────────────────────────────────────────
+
+
+def _write_manifest(cases_path: Path, thresholds: dict[str, float]) -> None:
+    """Write a scheduling-v1 manifest to cases_path/scheduling-v1/manifest.yaml."""
+    import yaml
+
+    manifest_data = {
+        "agent": "scheduling-v1",
+        "description": "Scheduling agent",
+        "categories": ["functional"],
+        "tools": [
+            {"name": "search_available_slots", "description": "Search slots"},
+            {"name": "book_appointment", "description": "Book"},
+            {"name": "cancel_appointment", "description": "Cancel"},
+        ],
+        "thresholds": thresholds,
+    }
+    manifest_dir = cases_path / "scheduling-v1"
+    manifest_dir.mkdir(parents=True, exist_ok=True)
+    with (manifest_dir / "manifest.yaml").open("w") as fh:
+        yaml.dump(manifest_data, fh)
+
+
+def test_manifest_thresholds_override_defaults(tmp_path: Path):
+    """Controller with a manifest uses manifest thresholds instead of DEFAULT_THRESHOLDS."""
+    import shutil
+
+    shutil.copytree("cases/scheduling", tmp_path / "scheduling")
+    _write_manifest(tmp_path, thresholds={"functional": 0.42})
+
+    controller = EvalController(
+        adapter=_FakeAdapter(),
+        judge=_FakeJudge(score=0.9),
+        cases_path=tmp_path,
+    )
+    results = controller.run(categories=["functional"])
+    functional_summary = next(s for s in results.categories if s.category == "functional")
+    assert functional_summary.threshold == 0.42
+
+
+def test_no_manifest_falls_back_to_default_thresholds():
+    """Controller without a manifest uses DEFAULT_THRESHOLDS."""
+    from hlsharness.controller import DEFAULT_THRESHOLDS
+
+    results = _make_controller(Path("cases")).run(categories=["functional"])
+    functional_summary = next(s for s in results.categories if s.category == "functional")
+    assert functional_summary.threshold == DEFAULT_THRESHOLDS["functional"]
+
+
+def test_manifest_validate_cases_uses_manifest_tools(tmp_path: Path):
+    """_validate_cases uses manifest tool names when a manifest is present."""
+    import shutil
+
+    shutil.copytree("cases/scheduling", tmp_path / "scheduling")
+    _write_manifest(tmp_path, thresholds={"functional": 0.8})
+
+    controller = EvalController(
+        adapter=_FakeAdapter(),
+        judge=_FakeJudge(score=0.9),
+        cases_path=tmp_path,
+    )
+    results = controller.run(categories=["functional"])
+    assert len(results.cases) == 3
+
+
+def test_explicit_thresholds_override_manifest(tmp_path: Path):
+    """Explicit thresholds passed to EvalController override manifest thresholds."""
+    import shutil
+
+    shutil.copytree("cases/scheduling", tmp_path / "scheduling")
+    _write_manifest(tmp_path, thresholds={"functional": 0.42})
+
+    controller = EvalController(
+        adapter=_FakeAdapter(),
+        judge=_FakeJudge(score=0.9),
+        cases_path=tmp_path,
+        thresholds={"functional": 0.99},
+    )
+    results = controller.run(categories=["functional"])
+    functional_summary = next(s for s in results.categories if s.category == "functional")
+    assert functional_summary.threshold == 0.99
