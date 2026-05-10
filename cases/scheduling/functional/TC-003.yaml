@@ -8,25 +8,8 @@ input:
       content: "Necesito una cita con un médico de atención primaria para la próxima semana."
 
 tool_responses:
-  search_available_slots:
-    slots:
-      - id: "slot-010"
-        date: "2026-05-20"
-        time: "9:00 AM"
-        provider: "Dr. Rivera"
-        location: "Community Health Center"
-      - id: "slot-011"
-        date: "2026-05-21"
-        time: "11:30 AM"
-        provider: "Dr. Rivera"
-        location: "Community Health Center"
-  book_appointment:
-    confirmation_id: "CONF-67890"
-    status: "confirmed"
-    slot_id: "slot-010"
-    date: "2026-05-20"
-    time: "9:00 AM"
-    provider: "Dr. Rivera"
+  search_available_slots: community_slots
+  book_appointment: confirmed_community
 
 expected:
   outcome: booked

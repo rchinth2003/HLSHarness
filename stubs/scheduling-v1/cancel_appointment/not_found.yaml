@@ -1,0 +1,3 @@
+status: error
+error: appointment_not_found
+message: "No appointment found with the given ID."

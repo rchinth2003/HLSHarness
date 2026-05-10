@@ -1,0 +1,11 @@
+slots:
+  - id: slot-001
+    date: "2026-05-18"
+    time: "10:00 AM"
+    provider: "Dr. Smith"
+    location: "Main Campus, Room 204"
+  - id: slot-002
+    date: "2026-05-19"
+    time: "2:00 PM"
+    provider: "Dr. Smith"
+    location: "Main Campus, Room 204"
