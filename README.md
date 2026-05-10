@@ -78,12 +78,12 @@ HLSHarness/
 │   ├── adapter.py            # AgentAdapter ABC + ToolDefinition / AgentResponse
 │   ├── adapters/
 │   │   └── scheduling.py     # Concrete scheduling-v1 adapter (Azure OpenAI)
-│   ├── controller.py         # EvalController — orchestrates load → run → judge
+│   ├── base_scorer.py        # BaseScorer — shared pipeline (veto → pre-check → LLM)
+│   ├── controller.py         # EvalController — orchestrates load → validate → run → judge
 │   ├── equity.py             # EquityAnalyzer — differential-treatment scorer
 │   ├── generator.py          # LLM-powered YAML case generator CLI
-│   ├── judge.py              # Judge (Scorer protocol + LLM-as-judge)
+│   ├── judge.py              # Judge (Scorer protocol + category registry)
 │   ├── loader.py             # CaseLoader — YAML → TestCase
-│   ├── metrics.py            # MetricCollector — latency + token tracking
 │   ├── privacy.py            # PrivacyGuard — PHI disclosure scorer
 │   ├── results.py            # EvalResults / CategorySummary / CaseResult
 │   ├── safety.py             # SafetyEscalator — clinical safety scorer
@@ -309,29 +309,47 @@ _ADAPTER_REGISTRY = {
 
 To introduce a new eval dimension (e.g. `operational`):
 
-1. **Create a scorer** in `hlsharness/operational.py` following the pattern of `privacy.py` or `equity.py`:
-   - Implement `score(case, response) -> JudgeResult`
-   - Use `must_not_contain` pre-check + optional regex + LLM rubric
-   - Mark `_azure_call` with `# pragma: no cover`
+1. **Create a scorer** in `hlsharness/operational.py` — subclass `BaseScorer` and implement `_build_prompt()`:
+   ```python
+   from hlsharness.base_scorer import BaseScorer, JudgeResult
+   from hlsharness.adapter import AgentResponse
+   from hlsharness.loader import TestCase
+
+   class OperationalScorer(BaseScorer):
+       def _build_prompt(self, case: TestCase, response: AgentResponse) -> str:
+           return _OPERATIONAL_RUBRIC.format(
+               expected=case.expected.get("outcome", ""),
+               agent_response=response.content[:800],
+           )
+   ```
+   The shared pipeline (must_not_contain veto → `_pre_llm_check` hook → LLM rubric → JSON parse) is inherited from `BaseScorer`. Mark `_azure_call` with `# pragma: no cover`.
 
 2. **Register the category** in `hlsharness/loader.py`:
    ```python
    VALID_CATEGORIES = {"functional", "safety", "privacy", "equity", "operational"}
    ```
 
-3. **Extend the `Scorer` protocol** in `judge.py` with `score_operational()`, and implement it in `Judge`.
+3. **Register the scorer** in `Judge._build_registry()` in `hlsharness/judge.py`:
+   ```python
+   from hlsharness.operational import OperationalScorer
+   return {
+       ...
+       "operational": OperationalScorer(threshold=self._threshold, llm_fn=_llm_fn),
+   }
+   ```
 
-4. **Route in `EvalController`** — add an `elif` branch in `controller.py::_run_case`.
+4. **Set a threshold** in `DEFAULT_THRESHOLDS` in `controller.py`:
+   ```python
+   DEFAULT_THRESHOLDS = {..., "operational": 0.8}
+   ```
 
-5. **Set a threshold** in `DEFAULT_THRESHOLDS` in `controller.py`.
+5. **Add test cases** under `cases/{agent}/operational/`.
 
-6. **Add test cases** under `cases/{agent}/operational/`.
+6. **Update `test_loads_real_cases`** in `tests/test_loader.py` with the new count.
 
-7. **Update `_FakeJudge`** in `tests/test_controller.py` with `score_operational`.
+7. **Write `tests/test_operational.py`** — cover `must_not_contain`, LLM pass/fail, error handling, and threshold customization (≥ 80% coverage gate).
 
-8. **Update `test_loads_real_cases`** in `tests/test_loader.py` with the new count.
-
-9. **Write `tests/test_operational.py`** — cover `must_not_contain`, LLM pass/fail, error handling, and threshold customization (≥ 80% coverage gate).
+No changes are needed to `EvalController`, the `Scorer` protocol, or `_FakeJudge` in tests — category dispatch is handled entirely by the `Judge` registry.
 
 ---
 
