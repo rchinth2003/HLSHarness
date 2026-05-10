@@ -63,6 +63,23 @@ class MafAgentYaml:
     tools: list[MafToolDef]
     x_harness: dict[str, Any]
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "description": self.description,
+            "system_prompt": self.system_prompt,
+            "tools": [
+                {"name": t.name, "description": t.description, "parameters": t.parameters}
+                for t in self.tools
+            ],
+            "x-harness": self.x_harness,
+        }
+
+    def write(self, path: Path) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("w", encoding="utf-8") as fh:
+            yaml.dump(self.to_dict(), fh, allow_unicode=True, sort_keys=False)
+
 
 def load_agent_yaml(path: Path) -> MafAgentYaml:
     """Load and validate a MAF agent YAML from *path*.
