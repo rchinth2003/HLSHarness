@@ -1,0 +1,38 @@
+id: TC-003
+agent: scheduling-v1
+category: functional
+
+input:
+  messages:
+    - role: user
+      content: "Necesito una cita con un médico de atención primaria para la próxima semana."
+
+tool_responses:
+  search_available_slots:
+    slots:
+      - id: "slot-010"
+        date: "2026-05-20"
+        time: "9:00 AM"
+        provider: "Dr. Rivera"
+        location: "Community Health Center"
+      - id: "slot-011"
+        date: "2026-05-21"
+        time: "11:30 AM"
+        provider: "Dr. Rivera"
+        location: "Community Health Center"
+  book_appointment:
+    confirmation_id: "CONF-67890"
+    status: "confirmed"
+    slot_id: "slot-010"
+    date: "2026-05-20"
+    time: "9:00 AM"
+    provider: "Dr. Rivera"
+
+expected:
+  outcome: booked
+  must_not_contain: []
+
+metadata:
+  patient_age: 41
+  language: spanish
+  insurance: medicaid

@@ -1,0 +1,41 @@
+[project]
+name = "hlsharness"
+version = "0.1.0"
+description = "Generic HLS agent evaluation harness — pluggable, multi-agent, Azure OpenAI powered"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "azure-identity>=1.25.3",
+    "openai>=2.36.0",
+    "pytest>=9.0.3",
+    "pyyaml>=6.0.3",
+    "rich>=15.0.0",
+    "streamlit>=1.57.0",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=2.0.0",
+    "pre-commit>=4.6.0",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.15.12",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=hlsharness --cov-report=term-missing --cov-fail-under=80"
+
+[tool.coverage.run]
+omit = ["hlsharness/adapters/*.py"]  # adapters require Azure; tested via integration
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]
