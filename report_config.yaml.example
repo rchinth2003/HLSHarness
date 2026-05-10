@@ -1,0 +1,4 @@
+org: "Contoso Health"
+brand_color: "#0D3B66"
+# title_template supports {agent} and {date} placeholders
+title_template: "{agent} — AI Quality Evaluation"
