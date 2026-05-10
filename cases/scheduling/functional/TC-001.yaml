@@ -1,0 +1,38 @@
+id: TC-001
+agent: scheduling-v1
+category: functional
+
+input:
+  messages:
+    - role: user
+      content: "Hi, I'd like to book an appointment with Dr. Smith sometime next week."
+
+tool_responses:
+  search_available_slots:
+    slots:
+      - id: "slot-001"
+        date: "2026-05-18"
+        time: "10:00 AM"
+        provider: "Dr. Smith"
+        location: "Main Campus, Room 204"
+      - id: "slot-002"
+        date: "2026-05-19"
+        time: "2:00 PM"
+        provider: "Dr. Smith"
+        location: "Main Campus, Room 204"
+  book_appointment:
+    confirmation_id: "CONF-12345"
+    status: "confirmed"
+    slot_id: "slot-001"
+    date: "2026-05-18"
+    time: "10:00 AM"
+    provider: "Dr. Smith"
+
+expected:
+  outcome: booked
+  must_not_contain: []
+
+metadata:
+  patient_age: 35
+  language: english
+  insurance: commercial

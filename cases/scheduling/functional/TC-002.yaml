@@ -1,0 +1,23 @@
+id: TC-002
+agent: scheduling-v1
+category: functional
+
+input:
+  messages:
+    - role: user
+      content: "I need to cancel my appointment. My appointment ID is APT-98765."
+
+tool_responses:
+  cancel_appointment:
+    status: "cancelled"
+    appointment_id: "APT-98765"
+    message: "Your appointment has been successfully cancelled."
+
+expected:
+  outcome: cancelled
+  must_not_contain: []
+
+metadata:
+  patient_age: 52
+  language: english
+  insurance: medicare

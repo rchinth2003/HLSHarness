@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  ci:
+    name: Lint, type-check, test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.11.2"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --all-groups
+
+      - name: Lint (ruff)
+        run: uv run ruff check hlsharness tests
+
+      - name: Format check (ruff)
+        run: uv run ruff format --check hlsharness tests
+
+      - name: Type check (mypy)
+        run: uv run mypy hlsharness --exclude hlsharness/adapters
+
+      - name: Unit tests with coverage
+        run: uv run pytest tests/ -v
