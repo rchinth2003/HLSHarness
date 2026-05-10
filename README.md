@@ -35,6 +35,46 @@ The harness authenticates to Azure OpenAI with `DefaultAzureCredential` — **no
 
 ## Quickstart
 
+### Option A — Devcontainer (recommended for company laptops)
+
+No installs required on the host. Requires VS Code + Docker Desktop (WSL2 backend on Windows).
+
+```bash
+# 1. Clone the repo
+git clone https://github.com/rchinth2003/HLSHarness.git
+cd HLSHarness
+```
+
+**2. Set env vars in your host shell profile** (once — the devcontainer inherits them):
+
+```bash
+# ~/.bashrc or ~/.zshrc or PowerShell $PROFILE
+export AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
+export AZURE_OPENAI_DEPLOYMENT_JUDGE=gpt-5.4-pro
+```
+
+**3. Log in to Azure on the host** (once — the devcontainer inherits `~/.azure`):
+
+```bash
+az login
+```
+
+**4. Open in VS Code → "Reopen in Container"**
+
+The container installs all dependencies automatically (`uv sync --all-groups`).
+
+**5. Verify the setup:**
+
+```bash
+uv run hls-eval   # runs scheduling-v1 — should print Overall: PASSED
+```
+
+See `.env.example` at the repo root for a full list of environment variables and what model to deploy for each.
+
+---
+
+### Option B — Manual setup
+
 ```bash
 # 1. Clone and set up the virtualenv
 git clone https://github.com/rchinth2003/HLSHarness.git
@@ -53,17 +93,12 @@ export AZURE_OPENAI_DEPLOYMENT_JUDGE=gpt-5.4-pro
 uv run pytest tests/ -q
 
 # 5. Run the eval harness against the real agent (requires Azure)
-uv run python harness.py run --agent scheduling-v1
-
-# Or use the registered CLI script
 uv run hls-eval
 ```
 
 After a run, `results.json` is written to the working directory. Launch the Streamlit dashboard to explore results:
 
 ```bash
-uv run python harness.py run --agent scheduling-v1 --serve
-# or separately:
 uv run streamlit run dashboard/app.py -- results.json
 ```
 
