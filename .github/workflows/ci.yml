@@ -27,11 +27,11 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-groups
 
-      - name: Lint (ruff)
-        run: uv run ruff check hlsharness tests
-
       - name: Format check (ruff)
         run: uv run ruff format --check hlsharness tests
+
+      - name: Lint (ruff)
+        run: uv run ruff check hlsharness tests
 
       - name: Type check (mypy)
         run: uv run mypy hlsharness --exclude hlsharness/adapters
