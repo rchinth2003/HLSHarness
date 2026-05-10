@@ -10,6 +10,7 @@ from hlsharness.pdf_extractor import PdfExtractor
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
+
 def _minimal_pdf_bytes() -> bytes:
     """Return a valid minimal PDF binary (no text content — blank page)."""
     body = (
