@@ -39,6 +39,7 @@ _console = Console()
 
 _ADAPTER_REGISTRY: dict[str, str] = {
     "scheduling-v1": "hlsharness.adapters.scheduling:SchedulingAdapter",
+    "prior-auth-v1": "hlsharness.adapters.prior_auth:PriorAuthAdapter",
 }
 
 
