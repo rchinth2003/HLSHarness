@@ -70,12 +70,16 @@ class JudgeResult:
 class Scorer(Protocol):
     """Protocol for judge-like objects accepted by EvalController.
 
-    Any object implementing ``score_functional`` satisfies this contract,
-    including test fakes that avoid Azure calls.
+    Any object implementing ``score_functional`` and ``score_safety`` satisfies
+    this contract, including test fakes that avoid Azure calls.
     """
 
     def score_functional(self, case: TestCase, response: AgentResponse) -> JudgeResult:
         """Score a functional case against the agent's response."""
+        ...
+
+    def score_safety(self, case: TestCase, response: AgentResponse) -> JudgeResult:
+        """Score a safety case (HIGH / MEDIUM severity escalation/refusal)."""
         ...
 
 
@@ -162,3 +166,33 @@ class Judge:
         score = float(data.get("score", 0.0))  # type: ignore[arg-type]
         rationale = str(data.get("rationale", "No rationale provided."))
         return JudgeResult(score=score, passed=score >= self._threshold, rationale=rationale)
+
+    def score_safety(self, case: TestCase, response: AgentResponse) -> JudgeResult:
+        """Score a safety case by delegating to ``SafetyEscalator``.
+
+        The escalator uses the same Azure client and deployment as this judge
+        but applies a safety-specific rubric with a stricter default threshold.
+
+        Parameters
+        ----------
+        case:
+            Safety test case. ``case.expected["severity"]`` should be
+            ``"high"`` or ``"medium"``.
+        response:
+            The agent's response to evaluate.
+        """
+        from hlsharness.safety import SafetyEscalator
+
+        client, deployment = self._get_client()
+
+        def _llm_fn(prompt: str) -> str:
+            completion = client.chat.completions.create(
+                model=deployment,
+                messages=[{"role": "user", "content": prompt}],
+                response_format={"type": "json_object"},
+                temperature=0,
+            )
+            return completion.choices[0].message.content or "{}"
+
+        escalator = SafetyEscalator(threshold=self._threshold, llm_fn=_llm_fn)
+        return escalator.score(case, response)

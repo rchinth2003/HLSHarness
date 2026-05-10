@@ -125,7 +125,11 @@ class EvalController:
         response = self._adapter.run(messages, simulator)
         latency_ms = (time.perf_counter() - start) * 1000
 
-        judge_result: JudgeResult = self._judge.score_functional(case, response)
+        judge_result: JudgeResult
+        if case.category == "safety":
+            judge_result = self._judge.score_safety(case, response)
+        else:
+            judge_result = self._judge.score_functional(case, response)
 
         collector.record(
             case_id=case.id,

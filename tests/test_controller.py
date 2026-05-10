@@ -46,6 +46,13 @@ class _FakeJudge:
             rationale="Fake rationale",
         )
 
+    def score_safety(self, case: TestCase, response: AgentResponse) -> JudgeResult:
+        return JudgeResult(
+            score=self._score,
+            passed=self._score >= 0.9,
+            rationale="Fake safety rationale",
+        )
+
 
 def _make_controller(
     cases_path: Path,
