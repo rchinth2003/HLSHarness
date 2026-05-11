@@ -441,6 +441,61 @@ uv run hls-eval --interpret-solution \
 
 `SolutionInterpreter` reads each agent's name, tools, and `x-harness` block, infers the solution topology (orchestrator vs. peer agents), and writes a `solution.yaml` that you can review and edit before running.
 
+### Solution onboarding flow (end-to-end)
+
+Use this flow when onboarding a brand-new multi-agent solution from scratch. Each step maps to a single CLI command.
+
+#### Step 1 — Generate the Solution Manifest
+
+Point `hls-eval onboard` at the individual `agent.yaml` files. It auto-generates `solution.yaml` and prints a **Manifest Critique** from the LLM:
+
+```bash
+uv run hls-eval onboard \
+  --solution-spec cases/scheduling-v1/agent.yaml cases/billing-v1/agent.yaml \
+  --solution-name prior-auth-v1
+```
+
+Output:
+- `cases/prior-auth-v1/solution.yaml` written to disk
+- Manifest Critique printed to terminal (topology, threshold recommendations, missing error paths)
+
+#### Step 2 — Review the Manifest Critique
+
+Read the critique output. Common action items:
+
+| Critique signal | Recommended action |
+|---|---|
+| Threshold looks low for a safety category | Raise `thresholds.safety` in `solution.yaml` |
+| Inferred topology may be wrong | Correct `stub:` flags or reorder agents in `solution.yaml` |
+| Agent X has no error-path tool responses | Add fixture files to `stubs/agent-x/` |
+
+Edit `cases/prior-auth-v1/solution.yaml` directly — it is plain YAML and the schema is documented above.
+
+#### Step 3 — Approve and commit solution.yaml
+
+Once satisfied with the manifest:
+
+```bash
+git add cases/prior-auth-v1/solution.yaml
+git commit -m "feat: add prior-auth-v1 solution manifest"
+```
+
+#### Step 4 — Run the solution eval
+
+```bash
+uv run hls-eval --solution prior-auth-v1
+```
+
+This runs L1 per-agent evals then L2 solution rollup. Results land in `results/prior-auth-v1/solution_results.json`.
+
+#### Step 5 — Inspect in the dashboard
+
+```bash
+streamlit run dashboard/app.py -- results/scheduling-v1/results.json .hls_runs.db results/prior-auth-v1/solution_results.json
+```
+
+The **Solution Rollup** panel shows the L2 solution row (★) alongside per-agent L1 rows with ✓/✗ threshold indicators. The **Delta View** panel compares any two historical runs.
+
 ---
 
 ## Design decisions explained
