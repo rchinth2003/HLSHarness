@@ -75,6 +75,7 @@ class EvalController:
         azure_endpoint: str | None = None,
         azure_deployment: str | None = None,
         stubs_path: Path | None = None,
+        run_store: Any | None = None,
     ) -> None:
         if agent_yaml_path is None:
             raise ValueError("'agent_yaml_path' is required.")
@@ -87,6 +88,7 @@ class EvalController:
         self._cases_path = cases_path
         self._stubs_path = stubs_path
         self._explicit_thresholds: dict[str, float] = thresholds or {}
+        self._run_store = run_store
 
         from hlsharness.maf_agent import build_maf_agent, load_agent_yaml
         from hlsharness.stub_middleware import StubToolMiddleware
@@ -159,11 +161,16 @@ class EvalController:
         categories_present = sorted({r.category for r in case_results})
         category_summaries = self._summarize(case_results, categories_present, effective_thresholds)
 
-        return EvalResults.create(
+        eval_result = EvalResults.create(
             agent=agent_name,
             cases=case_results,
             categories=category_summaries,
         )
+
+        if self._run_store is not None:
+            self._run_store.save(eval_result)
+
+        return eval_result
 
     def _validate_cases(self, cases: list[TestCase]) -> None:
         """Validate all cases before the eval loop; raise CaseValidationError if any fail.
