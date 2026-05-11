@@ -11,11 +11,13 @@ Exit codes
 0   Success (eval passed / onboard complete).
 1   One or more eval categories failed threshold gate.
 2   Bad arguments or no cases found.
+3   Eval passed absolute thresholds but regressed vs. baseline.
 """
 
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import sys
 from pathlib import Path
 
@@ -53,6 +55,24 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         metavar="PATH",
         help="If provided, write a branded PDF evaluation report to this path.",
+    )
+    p.add_argument(
+        "--baseline",
+        action="store_true",
+        default=False,
+        help="Compare run against stored baseline; exit 3 on regression.",
+    )
+    p.add_argument(
+        "--db",
+        default=".hls_runs.db",
+        metavar="PATH",
+        help="Path to the RunStore SQLite database (default: .hls_runs.db).",
+    )
+    p.add_argument(
+        "--version",
+        default="",
+        metavar="VERSION",
+        help="Agent version string stored alongside the run (default: '').",
     )
     return p
 
@@ -109,10 +129,56 @@ def _build_onboard_parser() -> argparse.ArgumentParser:
     return p
 
 
+def _apply_baseline_deltas(
+    categories: list,
+    baseline_categories: list,
+) -> list:
+    """Return a new list of CategorySummary with delta_vs_baseline populated.
+
+    Each category's delta = current pass_rate − baseline pass_rate.
+    Categories absent from the baseline are left with delta_vs_baseline=None.
+    """
+    baseline_by_cat = {c.category: c.pass_rate for c in baseline_categories}
+    result = []
+    for cat in categories:
+        if cat.category in baseline_by_cat:
+            delta = cat.pass_rate - baseline_by_cat[cat.category]
+            result.append(dataclasses.replace(cat, delta_vs_baseline=delta))
+        else:
+            result.append(cat)
+    return result
+
+
+def _compute_exit_code(results: object, delta_thresholds: dict[str, float]) -> int:
+    """Return the appropriate CLI exit code for a completed eval run.
+
+    Returns
+    -------
+    0   All categories met their absolute threshold and no delta gate fired.
+    1   At least one category failed its absolute pass-rate threshold.
+    3   All absolute thresholds passed but a category regressed beyond its
+        delta_threshold.  Only categories listed in *delta_thresholds* are
+        checked; absence means no delta gate for that category.
+    """
+    from hlsharness.results import EvalResults
+
+    assert isinstance(results, EvalResults)
+    if not results.passed:
+        return 1
+    for cat in results.categories:
+        if cat.delta_vs_baseline is not None and cat.category in delta_thresholds:
+            allowed_drop = delta_thresholds[cat.category]
+            if cat.delta_vs_baseline < -allowed_drop:
+                return 3
+    return 0
+
+
 def _print_summary(results: object) -> None:  # pragma: no cover
     from hlsharness.results import CategorySummary, EvalResults
 
     assert isinstance(results, EvalResults)
+
+    has_delta = any(c.delta_vs_baseline is not None for c in results.categories)
 
     table = Table(title=f"HLS Eval — {results.agent}", show_lines=True)
     table.add_column("Category", style="bold")
@@ -120,19 +186,29 @@ def _print_summary(results: object) -> None:  # pragma: no cover
     table.add_column("Passed", justify="right")
     table.add_column("Pass rate", justify="right")
     table.add_column("Threshold", justify="right")
+    if has_delta:
+        table.add_column("Delta", justify="right")
     table.add_column("Gate", justify="center")
 
     for cat in results.categories:
         assert isinstance(cat, CategorySummary)
         gate = "[green]PASS[/green]" if cat.met_threshold else "[red]FAIL[/red]"
-        table.add_row(
+        row = [
             cat.category,
             str(cat.total),
             str(cat.passed_count),
             f"{cat.pass_rate:.0%}",
             f"{cat.threshold:.0%}",
-            gate,
-        )
+        ]
+        if has_delta:
+            if cat.delta_vs_baseline is not None:
+                sign = "+" if cat.delta_vs_baseline >= 0 else ""
+                colour = "green" if cat.delta_vs_baseline >= 0 else "red"
+                row.append(f"[{colour}]{sign}{cat.delta_vs_baseline:.0%}[/{colour}]")
+            else:
+                row.append("—")
+        row.append(gate)
+        table.add_row(*row)
 
     _console.print()
     _console.print(table)
@@ -296,14 +372,16 @@ def _run_onboard(argv: list[str]) -> int:  # pragma: no cover
     return 0
 
 
-def _write_pdf_report(results: object, path: Path) -> None:  # pragma: no cover
+def _write_pdf_report(
+    results: object, path: Path, baseline_note: str | None = None
+) -> None:  # pragma: no cover
     from hlsharness.report_config import ReportConfig
     from hlsharness.report_renderer import ReportRenderer
     from hlsharness.results import EvalResults
 
     assert isinstance(results, EvalResults)
     config = ReportConfig.defaults()
-    pdf_bytes = ReportRenderer().render(results, config)
+    pdf_bytes = ReportRenderer().render(results, config, baseline_note=baseline_note)
     path.write_bytes(pdf_bytes)
     _console.print(f"PDF report written to [bold]{path}[/bold]")
 
@@ -320,8 +398,15 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover
     try:
         from hlsharness.controller import EvalController
         from hlsharness.judge import Judge
+        from hlsharness.maf_agent import load_agent_yaml
+        from hlsharness.run_store import RunStore
 
         agent_yaml_path = Path(args.cases) / args.agent / "agent.yaml"
+        agent_yaml_obj = load_agent_yaml(agent_yaml_path)
+        delta_thresholds: dict[str, float] = {
+            k: float(v) for k, v in agent_yaml_obj.x_harness.get("delta_thresholds", {}).items()
+        }
+
         judge = Judge()
         controller = EvalController(
             agent_yaml_path=agent_yaml_path,
@@ -329,6 +414,24 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover
             cases_path=Path(args.cases),
         )
         results = controller.run()
+
+        # Persist to RunStore
+        store = RunStore(db_path=Path(args.db))
+        store.save(results, version=args.version)
+
+        # Apply baseline deltas if requested
+        baseline_note: str | None = None
+        if args.baseline:
+            baseline = store.load_baseline(results.agent, version=args.version)
+            if baseline:
+                results = dataclasses.replace(
+                    results,
+                    categories=_apply_baseline_deltas(results.categories, baseline.categories),
+                )
+            else:
+                baseline_note = "No baseline found — this run establishes the new baseline."
+                store.promote_baseline(store.history(results.agent, limit=1)[0].id)
+
     except ValueError as exc:
         _console.print(f"[red]Error:[/red] {exc}")
         return 2
@@ -341,9 +444,9 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover
     _console.print(f"Results written to [bold]{args.out}[/bold]")
 
     if args.pdf:
-        _write_pdf_report(results, Path(args.pdf))
+        _write_pdf_report(results, Path(args.pdf), baseline_note=baseline_note)
 
-    return 0 if results.passed else 1
+    return _compute_exit_code(results, delta_thresholds)
 
 
 if __name__ == "__main__":  # pragma: no cover
