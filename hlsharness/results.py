@@ -87,6 +87,7 @@ class CategorySummary:
     pass_rate: float
     threshold: float
     met_threshold: bool
+    delta_vs_baseline: float | None = None
 
 
 @dataclass

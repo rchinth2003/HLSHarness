@@ -78,7 +78,12 @@ class ReportRenderer:
         Path("report.pdf").write_bytes(pdf_bytes)
     """
 
-    def render(self, results: EvalResults, config: ReportConfig) -> bytes:  # pragma: no cover
+    def render(
+        self,
+        results: EvalResults,
+        config: ReportConfig,
+        baseline_note: str | None = None,
+    ) -> bytes:  # pragma: no cover
         """Return PDF bytes for *results* styled with *config*.
 
         Imports ``weasyprint`` lazily so the module can be imported in test
@@ -87,12 +92,18 @@ class ReportRenderer:
         from weasyprint import HTML  # noqa: PLC0415
 
         date = datetime.now(UTC).strftime("%Y-%m-%d")
-        html = self._build_html(results, config, date)
+        html = self._build_html(results, config, date, baseline_note=baseline_note)
         return HTML(string=html).write_pdf()  # type: ignore[no-any-return]
 
     # ── internal ──────────────────────────────────────────────────────────────
 
-    def _build_html(self, results: EvalResults, config: ReportConfig, date: str) -> str:
+    def _build_html(
+        self,
+        results: EvalResults,
+        config: ReportConfig,
+        date: str,
+        baseline_note: str | None = None,
+    ) -> str:
         """Return the full HTML document as a string.
 
         Pure function — no I/O, no external dependencies.  Tested directly.
@@ -102,12 +113,16 @@ class ReportRenderer:
         verdict_cls = "passed" if results.passed else "failed"
         verdict_label = "PASSED" if results.passed else "FAILED"
 
+        baseline_note_html = (
+            f'<div class="baseline-note">{baseline_note}</div>' if baseline_note else ""
+        )
         cover = (
             f'<div class="cover">'
             f'<div class="subtitle">{config.org}</div>'
             f"<h1>{title}</h1>"
             f'<div class="subtitle">{date}</div>'
             f'<div class="verdict {verdict_cls}">{verdict_label}</div>'
+            f"{baseline_note_html}"
             f"</div>"
         )
 
@@ -124,10 +139,22 @@ class ReportRenderer:
 
     @staticmethod
     def _build_scorecard(results: EvalResults) -> str:
+        has_delta = any(c.delta_vs_baseline is not None for c in results.categories)
         rows = ""
         for cat in results.categories:
             gate_cls = "gate-pass" if cat.met_threshold else "gate-fail"
             gate_label = "PASS" if cat.met_threshold else "FAIL"
+            delta_cell = ""
+            if has_delta:
+                if cat.delta_vs_baseline is not None:
+                    sign = "+" if cat.delta_vs_baseline >= 0 else ""
+                    colour = "#16a34a" if cat.delta_vs_baseline >= 0 else "#dc2626"
+                    delta_cell = (
+                        f'<td style="color:{colour};font-weight:700">'
+                        f"{sign}{cat.delta_vs_baseline:.0%}</td>"
+                    )
+                else:
+                    delta_cell = "<td>—</td>"
             rows += (
                 f"<tr>"
                 f"<td>{cat.category}</td>"
@@ -135,13 +162,15 @@ class ReportRenderer:
                 f"<td>{cat.passed_count}</td>"
                 f"<td>{cat.pass_rate:.0%}</td>"
                 f"<td>{cat.threshold:.0%}</td>"
+                f"{delta_cell}"
                 f'<td class="{gate_cls}">{gate_label}</td>'
                 f"</tr>"
             )
+        delta_header = "<th>Delta</th>" if has_delta else ""
         table = (
             "<table>"
             "<tr><th>Category</th><th>Cases</th><th>Passed</th>"
-            "<th>Pass rate</th><th>Threshold</th><th>Gate</th></tr>"
+            f"<th>Pass rate</th><th>Threshold</th>{delta_header}<th>Gate</th></tr>"
             f"{rows}</table>"
         )
         return f'<div class="page"><h2>Scorecard</h2>{table}</div>'
