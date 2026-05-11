@@ -37,7 +37,7 @@ The abstract method `_build_prompt(case, response) -> str` that each concrete Sc
 The optional method `_pre_llm_check(case, response) -> JudgeResult | None` on `BaseScorer`. Defaults to `None` (no-op). Overridden only by scorers that need a deterministic check between `must_not_contain` and the LLM call (e.g., PHI regex in `PrivacyGuard`).
 
 **Upfront Validation**
-Case-list validation performed once in `EvalController.run()` before the eval loop starts. Checks that `tool_responses` keys match `adapter.tools` and that equity cases have required metadata keys (`patient_age`, `language`, `insurance`). All config errors surface together, not mid-run.
+Case-list validation performed once in `EvalController.run()` before the eval loop starts. Checks that `tool_responses` keys match tool names in the MAF Agent YAML, and that equity cases have required metadata keys (`patient_age`, `language`, `insurance`). All config errors surface together, not mid-run.
 
 **Evaluation Report**
 A PDF artifact produced by `hls-eval --pdf` after a run. Structured as: cover page (agent name, date, overall verdict) → summary table → failed cases with judge rationale. Primary sharing artifact for clinical directors and compliance officers who do not run the harness themselves. Configurable branding via `report_config.yaml`.
@@ -68,4 +68,4 @@ Named, reusable tool response scenarios stored in `stubs/{agent}/{tool_name}/` a
 Shared domain persona definitions stored in `personas/` as typed YAML files. Each persona captures healthcare-relevant dimensions: `id`, `age`, `language`, `insurance`, `location`, `care_context`. Referenced by test cases via `persona:` ID. Reusable across agents — the same persona exercises equity behavior consistently in scheduling-v1 and prior-auth-v1 without copy-paste.
 
 **Upfront Validation**
-Case-list validation performed once in `EvalController.run()` before the eval loop starts. Checks that `tool_responses` keys (inline or resolved from Fixture Library) match tool names in the MAF Agent YAML, and that equity cases reference a valid Persona Library ID. All config errors surface together, not mid-run.
+Case-list validation performed once in `EvalController.run()` before the eval loop starts. Checks that `tool_responses` keys (inline or resolved from Fixture Library) match tool names in the MAF Agent YAML, and that equity cases have required metadata keys (`patient_age`, `language`, `insurance`). All config errors surface together, not mid-run.

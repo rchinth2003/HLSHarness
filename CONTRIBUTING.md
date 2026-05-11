@@ -47,7 +47,7 @@ Merge with **squash and merge** so `main` has one commit per slice. The squash c
 
 ## Slice sequencing
 
-Do not start a slice until its blockers are merged and CI is green on `main`. The dependency graph is documented in PRD #54.
+Do not start a slice until its blockers are merged and CI is green on `main`. The dependency history is recorded in `SLICE_PLAN.md`.
 
 ## Local development
 

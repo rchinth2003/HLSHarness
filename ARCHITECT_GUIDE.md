@@ -93,6 +93,8 @@ TestCase (YAML)
 | `PrivacyGuard` | `hlsharness/privacy.py` | Scores privacy cases (PHI regex + LLM rubric) |
 | `EquityAnalyzer` | `hlsharness/equity.py` | Scores equity cases (demographics-aware LLM rubric) |
 | `EvalResults` | `hlsharness/results.py` | Output contract — written to `results.json` |
+| `ReportRenderer` | `hlsharness/report_renderer.py` | Generates a branded PDF from `EvalResults` via weasyprint |
+| `ReportConfig` | `hlsharness/report_config.py` | Immutable branding config (org, brand_color, title_template); loads from optional `report_config.yaml` |
 
 ---
 
@@ -103,15 +105,15 @@ The `hls-eval onboard` command automates building a new agent integration. It pr
 ```
 Spec file (OpenAPI / system prompt / plain English)
       │
-      ▼  hls-eval onboard --spec PATH --agent SLUG
+      ▼  hls-eval onboard --spec PATH --agent SLUG [--yes]
 ┌─────────────────────┐
 │   SpecInterpreter   │  calls Azure OpenAI → parses spec → validates schema
 └────────┬────────────┘
          │
          ▼
-  cases/{agent}/agent.yaml   ← review & edit before proceeding
+  cases/{agent}/agent.yaml   ← review & edit (or pass --yes to skip prompt)
          │
-         ▼  hls-eval onboard --generate --agent SLUG [--count N]
+         ▼  (auto-chained with --yes, or: hls-eval onboard --generate --agent SLUG [--count N])
 ┌─────────────────────────────────────────┐
 │  CaseGenerator                          │
 │  (YAML cases × N per category)          │
@@ -188,7 +190,7 @@ Prior authorization is the workflow where a provider must get insurance approval
 3. Report the status of an existing PA.
 4. Initiate an appeal if a PA is denied.
 
-> **Fast path:** `hls-eval onboard --spec prior-auth.yaml --agent prior-auth-v1` followed by `hls-eval onboard --generate --agent prior-auth-v1` generates the `agent.yaml` and seed test cases automatically. Review both before committing.
+> **Fast path:** `hls-eval onboard --spec prior-auth.yaml --agent prior-auth-v1 --yes` runs both phases in one command — generates the `agent.yaml`, prints a preview, then immediately generates seed test cases. Review both before committing.
 
 ### 1. Create agent.yaml
 
@@ -337,6 +339,7 @@ stubs:
 
 ```bash
 uv run hls-eval --agent prior-auth-v1
+# add --pdf report.pdf to also write a branded PDF evaluation report
 ```
 
 Update `tests/test_loader.py::test_loads_real_cases` when you add cases:
@@ -361,9 +364,11 @@ The original adapter pattern required writing Python code (subclassing `AgentAda
 
 `StubToolMiddleware` makes the scripted-response pattern work with any MAF-compatible agent — no adapter code required.
 
-### Why a two-phase onboarding CLI?
+### Why a two-phase onboarding CLI? And what does `--yes` do?
 
-Phase 1 (`--spec`) and Phase 2 (`--generate`) are intentionally separate commands. The `agent.yaml` written by Phase 1 is a human-reviewable file that an engineer can edit before Phase 2 runs. This makes the automation a starting point, not a black box — a bad spec or hallucinated tool name is caught at review time, not discovered when a case fails.
+Phase 1 (`--spec`) and Phase 2 (case generation) are designed as distinct steps so the `agent.yaml` written by Phase 1 is a human-reviewable file an engineer can edit before test cases are generated. This makes the automation a starting point, not a black box — a bad spec or hallucinated tool name is caught at review time.
+
+Pass `--yes` to chain both phases automatically in a single command. Without `--yes`, the harness prints the `agent.yaml` preview and waits — press Enter to generate cases, or Ctrl-C to edit first. The standalone `--generate` flag still works for re-running Phase 2 independently after edits.
 
 ### Why does `EvalController` read thresholds from `agent.yaml`?
 
