@@ -21,6 +21,8 @@ import dataclasses
 import sys
 from pathlib import Path
 
+from hlsharness.results import CategorySummary
+
 from rich.console import Console
 from rich.table import Table
 
@@ -130,9 +132,9 @@ def _build_onboard_parser() -> argparse.ArgumentParser:
 
 
 def _apply_baseline_deltas(
-    categories: list,
-    baseline_categories: list,
-) -> list:
+    categories: list[CategorySummary],
+    baseline_categories: list[CategorySummary],
+) -> list[CategorySummary]:
     """Return a new list of CategorySummary with delta_vs_baseline populated.
 
     Each category's delta = current pass_rate − baseline pass_rate.
