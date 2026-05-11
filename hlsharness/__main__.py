@@ -100,6 +100,12 @@ def _build_onboard_parser() -> argparse.ArgumentParser:
         metavar="N",
         help="Number of cases to generate per category (default: 3)",
     )
+    p.add_argument(
+        "--yes",
+        action="store_true",
+        help="Skip the confirmation prompt and automatically chain Phase 1 (spec → agent.yaml) "
+        "into Phase 2 (case generation) in a single command.",
+    )
     return p
 
 
@@ -191,6 +197,38 @@ def _run_onboard(argv: list[str]) -> int:  # pragma: no cover
             _console.print(critique)
         except Exception as exc:  # noqa: BLE001
             _console.print(f"[yellow]Critique unavailable:[/yellow] {exc}")
+
+        # ── Phase 3: case generation ──────────────────────────────────────────
+        if not args.yes:
+            _console.print(
+                "\n[bold]agent.yaml written.[/bold] "
+                "Press Enter to generate cases, or Ctrl-C to edit agent.yaml first."
+            )
+            try:
+                input()
+            except KeyboardInterrupt:
+                _console.print(
+                    "\n[yellow]Stopped.[/yellow] "
+                    "Edit agent.yaml then re-run with --generate to create cases."
+                )
+                return 0
+
+        from hlsharness.generator import CaseGenerator
+
+        _stubs_dir = Path("stubs")
+        _personas_dir = Path("personas")
+        _generator = CaseGenerator(
+            agent=agent_yaml_obj.name,
+            output_dir=cases_path,
+            agent_yaml=agent_yaml_obj,
+            stubs_dir=_stubs_dir,
+            personas_dir=_personas_dir,
+        )
+        for p in _generator.generate_fixtures(stubs_dir=_stubs_dir):
+            _console.print(f"[green]Fixture written:[/green] {p}")
+        for _cat in agent_yaml_obj.x_harness.get("categories", []):
+            for p in _generator.generate(category=_cat, count=args.count):
+                _console.print(f"[green]Case written:[/green] {p}")
 
         return 0
 

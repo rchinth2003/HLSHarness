@@ -303,6 +303,16 @@ Generated cases are written to `cases/{agent}/{category}/` and must pass `CaseLo
 
 The `hls-eval onboard` command automates the two-step workflow for adding a new agent: interpreting its spec into an `agent.yaml`, then generating seed test cases.
 
+### One-shot onboarding (recommended)
+
+Pass `--yes` to run both phases in a single command with no prompt:
+
+```bash
+uv run hls-eval onboard --spec path/to/prior-auth-openapi.yaml --agent prior-auth-v1 --yes
+```
+
+Without `--yes`, the harness writes `agent.yaml`, prints a preview, then waits — press Enter to generate cases or Ctrl-C to edit `agent.yaml` first.
+
 ### Phase 1 — spec → agent.yaml
 
 Point the harness at any spec format (OpenAPI JSON/YAML, system prompt, or plain English):

@@ -60,3 +60,13 @@ def test_custom_count() -> None:
 def test_unknown_flag_raises_system_exit() -> None:
     with pytest.raises(SystemExit):
         _build_onboard_parser().parse_args(["--unknown-flag"])
+
+
+def test_yes_flag_default_false() -> None:
+    args = _build_onboard_parser().parse_args(["--spec", "api.yaml"])
+    assert args.yes is False
+
+
+def test_yes_flag_set() -> None:
+    args = _build_onboard_parser().parse_args(["--spec", "api.yaml", "--yes"])
+    assert args.yes is True
