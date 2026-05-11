@@ -12,7 +12,15 @@ from pathlib import Path
 import yaml
 
 REQUIRED_TOP_LEVEL = {"id", "agent", "category", "input", "tool_responses", "expected"}
-VALID_CATEGORIES = {"functional", "safety", "privacy", "equity", "operational"}
+VALID_CATEGORIES = {
+    "functional",
+    "safety",
+    "privacy",
+    "equity",
+    "operational",
+    "urgency_triage",
+    "regulatory_compliance",
+}
 
 
 class CaseValidationError(Exception):

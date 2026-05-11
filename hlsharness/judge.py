@@ -132,7 +132,9 @@ class Judge:
         """Construct the Category Registry, sharing one Azure client across all scorers."""
         from hlsharness.equity import EquityAnalyzer
         from hlsharness.privacy import PrivacyGuard
+        from hlsharness.regulatory_compliance import RegulatoryComplianceScorer
         from hlsharness.safety import SafetyEscalator
+        from hlsharness.urgency_triage import UrgencyTriageScorer
 
         client, deployment = self._get_client()
 
@@ -150,6 +152,10 @@ class Judge:
             "safety": SafetyEscalator(threshold=self._threshold, llm_fn=_llm_fn),
             "privacy": PrivacyGuard(threshold=self._threshold, llm_fn=_llm_fn),
             "equity": EquityAnalyzer(threshold=self._threshold, llm_fn=_llm_fn),
+            "urgency_triage": UrgencyTriageScorer(threshold=self._threshold, llm_fn=_llm_fn),
+            "regulatory_compliance": RegulatoryComplianceScorer(
+                threshold=self._threshold, llm_fn=_llm_fn
+            ),
         }
 
     def _get_client(self) -> tuple[AzureOpenAI, str]:  # pragma: no cover
