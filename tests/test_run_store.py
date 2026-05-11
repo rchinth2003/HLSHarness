@@ -6,7 +6,6 @@ exclusivity, None returned when no baseline exists, and history ordering.
 
 from __future__ import annotations
 
-import tempfile
 from pathlib import Path
 
 import pytest
