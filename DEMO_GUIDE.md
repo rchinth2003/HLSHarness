@@ -167,6 +167,22 @@ The dashboard provides:
 - **Case detail view** — input message, agent response, tool calls made, score, and rationale for every case.
 - **Filtering** — view only failed cases, or drill into a single category.
 
+### PDF evaluation report
+
+Generate a branded PDF after a run by passing `--pdf`:
+
+```bash
+uv run hls-eval --pdf report.pdf
+```
+
+The PDF contains:
+- **Cover page** — agent name, date, and PASSED / FAILED verdict in the organization's brand color.
+- **Scorecard** — the per-category pass-rate table.
+- **Failed cases** — each failure as a card: case ID, score, patient input, and judge rationale.
+- **Passing cases** — same format for passing cases.
+
+The brand color and organization name default to `#0D3B66` / `Contoso Health`. To customize, create a `report_config.yaml` and pass it as an environment variable or load it via `ReportConfig.load(path)` in code.
+
 ---
 
 ## Understanding scores and thresholds
