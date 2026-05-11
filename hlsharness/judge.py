@@ -20,9 +20,9 @@ from typing import Protocol
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from openai import AzureOpenAI
 
-from hlsharness.adapter import AgentResponse
 from hlsharness.base_scorer import BaseScorer, JudgeResult
 from hlsharness.loader import TestCase
+from hlsharness.results import AgentResponse
 
 _FUNCTIONAL_RUBRIC = """\
 You are an impartial evaluator for a patient scheduling AI agent.

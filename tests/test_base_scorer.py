@@ -10,10 +10,10 @@ import json
 
 import pytest
 
-from hlsharness.adapter import AgentResponse
 from hlsharness.base_scorer import BaseScorer, MustNotContainViolation
 from hlsharness.judge import JudgeResult
 from hlsharness.loader import TestCase
+from hlsharness.results import AgentResponse
 
 # ── test fixtures ─────────────────────────────────────────────────────────────
 

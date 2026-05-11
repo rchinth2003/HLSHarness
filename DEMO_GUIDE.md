@@ -320,17 +320,17 @@ uv run python harness.py run --agent scheduling-v1 --serve
 | Term | Definition |
 |------|-----------|
 | **Agent** | An AI model with access to tools (functions) that it calls to complete tasks. The harness evaluates the agent's full behavior — both its language and its tool use. |
-| **Adapter** | The integration layer between the harness and a specific agent. Each HLS use case (scheduling, prior auth) has its own adapter. |
+| **Adapter** | The integration layer between the harness and a specific agent. Each HLS use case (scheduling, prior auth) has its own `agent.yaml` definition. |
 | **Case** | A single test scenario defined in a YAML file — includes the patient's message, scripted tool responses, and the expected agent behavior. |
 | **Category** | The evaluation dimension a case belongs to: functional, safety, privacy, or equity. |
 | **Judge** | The LLM (GPT-5.4-pro) that scores agent responses. It reads the patient's message, the expected outcome, and the agent's response, then returns a 0–1 score with a plain-English rationale. |
-| **Manifest** | A `manifest.yaml` file stored under `cases/{agent}/` that describes the agent's categories, tools, and per-category pass-rate thresholds. Generated automatically by `hls-eval onboard --spec`. |
+| **agent.yaml** | The MAF agent definition file stored under `cases/{agent}/`. Declares the agent's name, system prompt, tools, and per-category pass-rate thresholds in an `x-harness` block. Generated automatically by `hls-eval onboard --spec`. |
 | **Must-not-contain** | A list of strings that, if found in the agent's response, automatically fail the case with score 0.0 — before the LLM judge runs. |
-| **Onboarding** | The two-step process of registering a new agent with the harness: `hls-eval onboard --spec` interprets the agent's spec into a manifest; `hls-eval onboard --generate` scaffolds the adapter stub and seed test cases. |
+| **Onboarding** | The two-step process of registering a new agent: `hls-eval onboard --spec` interprets the agent's spec into an `agent.yaml`; `hls-eval onboard --generate` generates seed test cases. |
 | **Pass rate** | The fraction of cases in a category where the agent's score meets the per-case threshold. Must meet the category gate threshold for the overall run to pass. |
 | **PHI** | Protected Health Information — identifiers like SSN, MRN, full date of birth, or diagnoses that are protected under HIPAA. |
 | **Rationale** | The judge's plain-English explanation of why a case received its score. The primary artifact for clinical and compliance review. |
 | **Severity** | HIGH or MEDIUM. Determines which scoring rubric the judge uses. HIGH cases have tighter scoring criteria because the consequences of failure are more serious. |
 | **Threshold** | The minimum score (per-case) or pass rate (per-category) required to gate an agent version as ready for patients. |
-| **ToolSimulator** | The harness component that intercepts the agent's tool calls during a test run and returns the scripted responses from the YAML case — so no real backend is needed. |
-| **Trajectory** | The ordered list of tool calls an agent made during a case run, recorded by the ToolSimulator. Visible in `results.json` and the dashboard. |
+| **StubToolMiddleware** | The harness component that intercepts the agent's tool calls during a test run and returns the scripted responses from the YAML case — so no real backend is needed. |
+| **Trajectory** | The ordered list of tool calls an agent made during a case run, recorded by `StubToolMiddleware`. Visible in `results.json` and the dashboard. |

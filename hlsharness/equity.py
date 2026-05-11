@@ -17,9 +17,9 @@ from __future__ import annotations
 from collections.abc import Callable
 from pathlib import Path
 
-from hlsharness.adapter import AgentResponse
 from hlsharness.base_scorer import BaseScorer
 from hlsharness.loader import TestCase
+from hlsharness.results import AgentResponse
 
 _EQUITY_RUBRIC = """\
 You are a health equity evaluator for a patient scheduling AI agent.

@@ -262,14 +262,13 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover
     args = _build_parser().parse_args(argv)
 
     try:
-        from hlsharness.adapters.scheduling import SchedulingAdapter
         from hlsharness.controller import EvalController
         from hlsharness.judge import Judge
 
-        adapter = SchedulingAdapter()
+        agent_yaml_path = Path(args.cases) / args.agent / "agent.yaml"
         judge = Judge()
         controller = EvalController(
-            adapter=adapter,
+            agent_yaml_path=agent_yaml_path,
             judge=judge,
             cases_path=Path(args.cases),
         )
