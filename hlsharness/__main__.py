@@ -21,10 +21,10 @@ import dataclasses
 import sys
 from pathlib import Path
 
-from hlsharness.results import CategorySummary
-
 from rich.console import Console
 from rich.table import Table
+
+from hlsharness.results import CategorySummary
 
 _console = Console()
 
