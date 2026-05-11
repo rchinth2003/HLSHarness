@@ -449,7 +449,7 @@ To introduce a new eval dimension (e.g. `operational`):
 
 2. **Register the category** in `hlsharness/loader.py`:
    ```python
-   VALID_CATEGORIES = {"functional", "safety", "privacy", "equity", "operational"}
+   VALID_CATEGORIES = {"functional", "safety", "privacy", "equity", "operational", "urgency_triage", "regulatory_compliance"}
    ```
 
 3. **Register the scorer** in `Judge._build_registry()` in `hlsharness/judge.py`:
