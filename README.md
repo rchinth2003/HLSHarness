@@ -282,6 +282,7 @@ uv run hls-eval                              # defaults: cases/, scheduling-v1, 
 uv run hls-eval --cases /path/to/cases
 uv run hls-eval --agent prior-auth-v1
 uv run hls-eval --out artifacts/results.json
+uv run hls-eval --pdf report.pdf             # also write a branded PDF evaluation report
 ```
 
 Exit code is `0` when all categories pass their threshold, `1` when any gate fails, `2` on bad arguments.
