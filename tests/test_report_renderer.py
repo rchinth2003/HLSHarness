@@ -153,9 +153,6 @@ def test_build_html_gate_pass_and_fail_present() -> None:
     assert "FAIL" in html
 
 
-# ── parser: --pdf flag ─────────────────────────────────────────────────────────
-
-
 def test_pdf_flag_default_none() -> None:
     from hlsharness.__main__ import _build_parser
 
@@ -168,3 +165,79 @@ def test_pdf_flag_sets_path() -> None:
 
     args = _build_parser().parse_args(["--pdf", "out/report.pdf"])
     assert args.pdf == "out/report.pdf"
+
+
+# ── delta column (Slice 16D) ───────────────────────────────────────────────────
+
+
+def _make_results_with_delta(delta: float | None) -> EvalResults:
+    import dataclasses
+
+    results = _make_results()
+    results = dataclasses.replace(
+        results,
+        categories=[
+            dataclasses.replace(results.categories[0], delta_vs_baseline=delta),
+            results.categories[1],
+        ],
+    )
+    return results
+
+
+def test_scorecard_no_delta_column_without_baseline() -> None:
+    html = ReportRenderer()._build_html(_make_results(), ReportConfig.defaults(), "2026-05-10")
+    assert "<th>Delta</th>" not in html
+
+
+def test_scorecard_delta_column_present_with_baseline() -> None:
+    results = _make_results_with_delta(0.1)
+    html = ReportRenderer()._build_html(results, ReportConfig.defaults(), "2026-05-10")
+    assert "<th>Delta</th>" in html
+
+
+def test_scorecard_positive_delta_shown_green() -> None:
+    results = _make_results_with_delta(0.1)
+    html = ReportRenderer()._build_html(results, ReportConfig.defaults(), "2026-05-10")
+    assert "#16a34a" in html
+    assert "+10%" in html
+
+
+def test_scorecard_negative_delta_shown_red() -> None:
+    results = _make_results_with_delta(-0.1)
+    html = ReportRenderer()._build_html(results, ReportConfig.defaults(), "2026-05-10")
+    assert "#dc2626" in html
+    assert "-10%" in html
+
+
+def test_scorecard_none_delta_shows_dash() -> None:
+    import dataclasses
+
+    results = _make_results()
+    results = dataclasses.replace(
+        results,
+        categories=[
+            dataclasses.replace(results.categories[0], delta_vs_baseline=0.05),
+            results.categories[1],
+        ],
+    )
+    html = ReportRenderer()._build_html(results, ReportConfig.defaults(), "2026-05-10")
+    assert "<td>—</td>" in html
+
+
+# ── baseline note ─────────────────────────────────────────────────────────────
+
+
+def test_baseline_note_absent_by_default() -> None:
+    html = ReportRenderer()._build_html(_make_results(), ReportConfig.defaults(), "2026-05-10")
+    assert "baseline-note" not in html
+
+
+def test_baseline_note_present_when_provided() -> None:
+    html = ReportRenderer()._build_html(
+        _make_results(),
+        ReportConfig.defaults(),
+        "2026-05-10",
+        baseline_note="No baseline found — this run establishes the new baseline.",
+    )
+    assert "No baseline found" in html
+    assert "baseline-note" in html
