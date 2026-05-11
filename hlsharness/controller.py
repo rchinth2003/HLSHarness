@@ -75,7 +75,7 @@ class EvalController:
         azure_endpoint: str | None = None,
         azure_deployment: str | None = None,
         stubs_path: Path | None = None,
-        run_store: object | None = None,
+        run_store: Any | None = None,
     ) -> None:
         if agent_yaml_path is None:
             raise ValueError("'agent_yaml_path' is required.")
@@ -161,16 +161,16 @@ class EvalController:
         categories_present = sorted({r.category for r in case_results})
         category_summaries = self._summarize(case_results, categories_present, effective_thresholds)
 
-        result = EvalResults.create(
+        eval_result = EvalResults.create(
             agent=agent_name,
             cases=case_results,
             categories=category_summaries,
         )
 
         if self._run_store is not None:
-            self._run_store.save(result)
+            self._run_store.save(eval_result)
 
-        return result
+        return eval_result
 
     def _validate_cases(self, cases: list[TestCase]) -> None:
         """Validate all cases before the eval loop; raise CaseValidationError if any fail.

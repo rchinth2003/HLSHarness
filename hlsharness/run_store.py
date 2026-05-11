@@ -118,6 +118,7 @@ class RunStore:
                 ),
             )
             run_id = cur.lastrowid
+            assert run_id is not None
             conn.executemany(
                 """
                 INSERT INTO category_scores (run_id, category, pass_rate, met_threshold)
