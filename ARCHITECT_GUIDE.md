@@ -505,6 +505,45 @@ No changes are needed to `EvalController`, the `Scorer` protocol, or `_FakeJudge
 
 ---
 
+## Dashboard: Run History and Baseline Promotion
+
+The Streamlit dashboard shows a **Run History** panel beneath the Category Detail view whenever a RunStore database is found.
+
+### Launching with run history
+
+```bash
+# Default: picks up .hls_runs.db automatically if it exists in the working directory
+streamlit run dashboard/app.py -- results.json
+
+# Explicit db path (second positional arg)
+streamlit run dashboard/app.py -- results.json /path/to/runs.db
+```
+
+### Smoke test steps
+
+1. Run at least two evals for the same agent so the database has multiple rows:
+   ```bash
+   hls-eval --agent scheduling-v1 --db .hls_runs.db
+   ```
+
+2. Open the dashboard:
+   ```bash
+   streamlit run dashboard/app.py -- results.json
+   ```
+
+3. Scroll to the **Run History** section (below Category Detail).
+4. Verify the history table shows: ID, Version, SHA, Date, Pass (✓/✗), per-category pass rates, Baseline (★).
+5. Categories that failed their threshold appear with **✗ XX%** in red; passing categories appear with **✓ XX%** in green.
+6. Select a passing run from the **Promote a run to baseline** selectbox and click **⭐ Set as Baseline**.
+7. The table should refresh and show **★** in the Baseline column for that run; the old baseline row should show no ★.
+8. Confirm only one ★ appears at a time — promoting a new run clears the previous baseline.
+
+### What is not shown
+
+The history panel is only shown when `.hls_runs.db` exists (or a second CLI arg is provided). If the file does not exist, the panel is silently omitted and the rest of the dashboard renders normally.
+
+---
+
 ## Troubleshooting
 
 ### `CaseValidationError` before the eval loop starts

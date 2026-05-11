@@ -49,6 +49,15 @@ def _resolve_results_path() -> Path:
     return Path("results.json")
 
 
+def _resolve_db_path() -> Path | None:
+    """Return the RunStore db path: second CLI arg, or default if it exists."""
+    args = sys.argv[1:]
+    if len(args) >= 2:
+        return Path(args[1])
+    default = Path(".hls_runs.db")
+    return default if default.exists() else None
+
+
 def _badge(passed: bool) -> str:
     color = _PASS_COLOR if passed else _FAIL_COLOR
     label = "PASS" if passed else "FAIL"
@@ -205,6 +214,103 @@ def _render_category_detail(results: DashResults) -> None:
                     st.divider()
 
 
+def _render_run_history(agent: str, db_path: Path) -> None:
+    """Render run history table and baseline-promotion UI."""
+    import pandas as pd
+
+    from hlsharness.run_store import RunStore
+
+    st.divider()
+    st.subheader("Run History")
+
+    store = RunStore(db_path=db_path)
+    records = store.history(agent, limit=50)
+
+    if not records:
+        st.info("No run history found. Run `hls-eval` to populate the history.")
+        return
+
+    # Collect category names in first-seen order (stable columns)
+    seen_cats: set[str] = set()
+    all_cats: list[str] = []
+    for r in records:
+        for c in r.categories:
+            if c.category not in seen_cats:
+                seen_cats.add(c.category)
+                all_cats.append(c.category)
+
+    rows = []
+    for r in records:
+        cat_map = {c.category: c for c in r.categories}
+        row: dict[str, object] = {
+            "ID": r.id,
+            "Version": r.version or "—",
+            "SHA": r.git_sha[:7] if r.git_sha else "—",
+            "Date": r.run_at[:19].replace("T", " "),
+            "Pass": "✓" if r.passed else "✗",
+            "Baseline": "★" if r.is_baseline else "",
+        }
+        for cat in all_cats:
+            cs = cat_map.get(cat)
+            if cs:
+                marker = "✓ " if cs.met_threshold else "✗ "
+                row[cat.capitalize()] = marker + _pct(cs.pass_rate)
+            else:
+                row[cat.capitalize()] = "—"
+        rows.append(row)
+
+    df = pd.DataFrame(rows)
+    cat_cols = [cat.capitalize() for cat in all_cats]
+
+    def _color_pass(val: str) -> str:
+        if val == "✓":
+            return f"color: {_PASS_COLOR}; font-weight: bold"
+        if val == "✗":
+            return f"color: {_FAIL_COLOR}; font-weight: bold"
+        return ""
+
+    def _color_baseline(val: str) -> str:
+        return "color: #f59e0b; font-weight: bold" if val == "★" else ""
+
+    def _color_cat(val: object) -> str:
+        if isinstance(val, str) and val.startswith("✗"):
+            return f"color: {_FAIL_COLOR}"
+        if isinstance(val, str) and val.startswith("✓"):
+            return f"color: {_PASS_COLOR}"
+        return ""
+
+    styled = df.style.map(_color_pass, subset=["Pass"]).map(_color_baseline, subset=["Baseline"])
+    if cat_cols:
+        styled = styled.map(_color_cat, subset=cat_cols)
+
+    st.dataframe(styled, use_container_width=True, hide_index=True)
+
+    # Baseline promotion
+    passing_records = [r for r in records if r.passed]
+    if passing_records:
+        st.markdown("**Promote a run to baseline**")
+        options = {
+            r.id: f"#{r.id}  {r.run_at[:19].replace('T', ' ')}  v{r.version or '—'}"
+            for r in passing_records
+        }
+        col_sel, col_btn = st.columns([3, 1])
+        with col_sel:
+            selected_id: int = st.selectbox(
+                "run",
+                options=list(options.keys()),
+                format_func=lambda x: options[x],
+                key="baseline_promote_select",
+                label_visibility="collapsed",
+            )
+        with col_btn:
+            if st.button("⭐ Set as Baseline", key="baseline_promote_btn"):
+                store.promote_baseline(selected_id)
+                st.success(f"Run #{selected_id} set as baseline.")
+                st.rerun()
+    else:
+        st.caption("No passing runs available to promote.")
+
+
 def _render_sidebar(results: DashResults) -> None:
     with st.sidebar:
         st.header("HLS Harness")
@@ -243,6 +349,10 @@ def main() -> None:
     _render_category_scorecards(results)
     st.markdown("<br>", unsafe_allow_html=True)
     _render_category_detail(results)
+
+    db_path = _resolve_db_path()
+    if db_path is not None:
+        _render_run_history(results.agent, db_path)
 
 
 main()
