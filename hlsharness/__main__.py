@@ -137,6 +137,19 @@ def _build_onboard_parser() -> argparse.ArgumentParser:
         help="Skip the confirmation prompt and automatically chain Phase 1 (spec → agent.yaml) "
         "into Phase 2 (case generation) in a single command.",
     )
+    p.add_argument(
+        "--solution-spec",
+        nargs="+",
+        metavar="PATH",
+        default=None,
+        help="Paths to N agent.yaml files; auto-generates solution.yaml for --solution-name.",
+    )
+    p.add_argument(
+        "--solution-name",
+        metavar="NAME",
+        default=None,
+        help="Solution name slug (required with --solution-spec).",
+    )
     return p
 
 
@@ -239,15 +252,40 @@ def _run_onboard(argv: list[str]) -> int:  # pragma: no cover
 
     args = _build_onboard_parser().parse_args(argv)
 
-    if not args.spec and not args.generate and not args.critique:
-        _console.print("[red]Error:[/red] provide --spec PATH, --critique PATH, or --generate")
+    if not args.spec and not args.generate and not args.critique and not args.solution_spec:
+        _console.print(
+            "[red]Error:[/red] provide --spec PATH, --critique PATH, --generate, "
+            "or --solution-spec FILES"
+        )
         return 2
+
+    cases_path = Path(args.cases)
+
+    # ── solution.yaml generation ──────────────────────────────────────────────
+    if args.solution_spec:
+        if not args.solution_name:
+            _console.print("[red]Error:[/red] --solution-name is required with --solution-spec")
+            return 2
+
+        from hlsharness.solution_interpreter import SolutionInterpreter
+
+        paths = [Path(p) for p in args.solution_spec]
+        sol_interp = SolutionInterpreter()
+        solution_yaml_text, critique = sol_interp.interpret(paths, args.solution_name)
+
+        out_path = cases_path / args.solution_name / "solution.yaml"
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(solution_yaml_text, encoding="utf-8")
+        _console.print(f"[green]solution.yaml written:[/green] {out_path}")
+        _console.print("\n[bold]Draft solution.yaml[/bold]\n")
+        _console.print(Syntax(solution_yaml_text, "yaml"))
+        _console.print("\n[bold]Manifest Critique[/bold]\n")
+        _console.print(critique)
+        return 0
 
     if args.spec and args.generate:
         _console.print("[red]Error:[/red] --spec and --generate are mutually exclusive")
         return 2
-
-    cases_path = Path(args.cases)
 
     # ── Phase 1: spec → agent.yaml ────────────────────────────────────────────
     if args.spec:
