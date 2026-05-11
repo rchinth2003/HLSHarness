@@ -16,6 +16,11 @@ The guide uses a **Prior Authorization (PA)** agent as its running example.
   - [2. Write test cases](#2-write-test-cases)
   - [3. Add fixture files (optional)](#3-add-fixture-files-optional)
   - [4. Run the harness](#4-run-the-harness)
+- [Phase 4: Multi-agent solution evaluation](#phase-4-multi-agent-solution-evaluation)
+  - [solution.yaml schema](#solutionyaml-schema)
+  - [Stub mode (F2)](#stub-mode-f2)
+  - [Running solution eval](#running-solution-eval)
+  - [Auto-generating solution.yaml](#auto-generating-solutionyaml)
 - [Design decisions explained](#design-decisions-explained)
 - [Adding a new scoring category](#adding-a-new-scoring-category)
 - [Troubleshooting](#troubleshooting)
@@ -353,6 +358,88 @@ def test_loads_real_cases():
 ```
 
 No changes are needed to `_FakeJudge` in `tests/test_controller.py` — it implements the single `score(category, case, response)` method of the `Scorer` protocol and handles any category string automatically.
+
+---
+
+## Phase 4: Multi-agent solution evaluation
+
+When an HLS workflow spans more than one agent — for example, a scheduling agent, a billing agent, and a referral agent that must all stay within quality thresholds together — create a `solution.yaml` to evaluate the whole solution in a single command.
+
+### solution.yaml schema
+
+Place `solution.yaml` anywhere on disk (typically `cases/{solution-name}/solution.yaml`):
+
+```yaml
+solution: prior-auth-v1              # unique solution identifier
+agents:
+  - name: scheduling-v1              # must match an existing cases/{name}/agent.yaml
+    stub: false                      # run live through MAF (default)
+  - name: billing-v1
+    stub: false
+  - name: referral-v1
+    stub: true                       # return scripted fixture responses (F2 mode)
+thresholds:                          # L2 solution-level pass thresholds (optional)
+  functional: 0.85
+  safety: 1.0
+  urgency_triage: 0.90
+  regulatory_compliance: 0.95
+```
+
+**Fields:**
+
+| Field | Required | Description |
+|---|---|---|
+| `solution` | yes | Unique name for this multi-agent solution |
+| `agents` | yes | Ordered list of agents; at least one required |
+| `agents[].name` | yes | Must resolve to `cases/{name}/agent.yaml` |
+| `agents[].stub` | no | `true` = return fixture responses; `false` (default) = run live |
+| `thresholds` | no | Per-category L2 thresholds; merged over harness defaults |
+
+### Stub mode (F2)
+
+Setting `stub: true` on an agent causes `StubToolMiddleware` to intercept all its tool calls and return scripted YAML fixtures from `stubs/{name}/`. This lets you test a live orchestrator with peer agents replaced by deterministic fixtures, or test the whole solution without any Azure calls.
+
+**Requirements for stubbed agents:**
+
+1. `stubs/{name}/` must exist and contain at least one `*.yaml` fixture file.
+2. All `tool_responses` keys in test cases must match tool names declared in the agent's `agent.yaml`.
+
+`SolutionManifest.validate()` checks both requirements before the eval loop starts, collecting all errors together (same `CaseValidationError` pattern as single-agent validation).
+
+### Running solution eval
+
+```bash
+uv run hls-eval --solution prior-auth-v1
+```
+
+This runs:
+
+1. **L1 per-agent eval** — `EvalController` runs each agent's cases independently; each produces its own `EvalResults`.
+2. **L2 solution rollup** — `SolutionController` averages per-category pass rates across all agents; produces a `SolutionResult` with `solution_categories`.
+
+Results are written to `--out` (default `results/`):
+
+```
+results/
+├── scheduling-v1/results.json   # L1 per-agent
+├── billing-v1/results.json
+├── referral-v1/results.json
+└── prior-auth-v1/solution_results.json   # L2 rollup
+```
+
+### Auto-generating solution.yaml
+
+If you already have individual `agent.yaml` files, use `SolutionInterpreter` to compose a `solution.yaml` automatically:
+
+```bash
+uv run hls-eval --interpret-solution \
+  cases/scheduling-v1/agent.yaml \
+  cases/billing-v1/agent.yaml \
+  cases/referral-v1/agent.yaml \
+  --out cases/prior-auth-v1/solution.yaml
+```
+
+`SolutionInterpreter` reads each agent's name, tools, and `x-harness` block, infers the solution topology (orchestrator vs. peer agents), and writes a `solution.yaml` that you can review and edit before running.
 
 ---
 

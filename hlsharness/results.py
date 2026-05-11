@@ -64,6 +64,7 @@ class CaseResult:
     prompt_tokens: int
     completion_tokens: int
     metadata: dict[str, object] = field(default_factory=dict)
+    delta_vs_baseline: float | None = None
 
 
 @dataclass
@@ -136,5 +137,56 @@ class EvalResults:
 
     def write_json(self, path: Path) -> None:
         """Write ``results.json`` to ``path``, creating parent directories if needed."""
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(self.to_dict(), indent=2), encoding="utf-8")
+
+
+@dataclass
+class SolutionResult:
+    """L2 solution-level results aggregating per-agent ``EvalResults``.
+
+    Parameters
+    ----------
+    solution:             Solution name from ``solution.yaml``.
+    run_at:               ISO 8601 UTC timestamp of the L2 run.
+    agent_results:        L1 per-agent eval results in agent declaration order.
+    solution_categories:  L2 category summaries (pass rates averaged across agents).
+    passed:               True only when every solution-level category meets threshold.
+    """
+
+    solution: str
+    run_at: str
+    agent_results: list[EvalResults]
+    solution_categories: list[CategorySummary]
+    passed: bool
+
+    @classmethod
+    def create(
+        cls,
+        solution: str,
+        agent_results: list[EvalResults],
+        solution_categories: list[CategorySummary],
+    ) -> SolutionResult:
+        """Construct with auto-populated ``run_at`` timestamp."""
+        return cls(
+            solution=solution,
+            run_at=datetime.now(UTC).isoformat(),
+            agent_results=agent_results,
+            solution_categories=solution_categories,
+            passed=all(c.met_threshold for c in solution_categories),
+        )
+
+    def to_dict(self) -> dict[str, object]:
+        """Serialize to a JSON-compatible dict."""
+        return {
+            "solution": self.solution,
+            "run_at": self.run_at,
+            "passed": self.passed,
+            "solution_categories": [asdict(c) for c in self.solution_categories],
+            "agent_results": [r.to_dict() for r in self.agent_results],
+        }
+
+    def write_json(self, path: Path) -> None:
+        """Write ``solution_results.json`` to ``path``."""
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(self.to_dict(), indent=2), encoding="utf-8")
