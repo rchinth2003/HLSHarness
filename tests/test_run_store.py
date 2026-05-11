@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from hlsharness.results import CategorySummary, EvalResults
+from hlsharness.results import CaseResult, CategorySummary, EvalResults
 from hlsharness.run_store import RunStore
 
 
@@ -30,6 +30,52 @@ def _make_result(
         )
     ]
     return EvalResults.create(agent=agent, cases=[], categories=categories)
+
+
+def _make_result_with_cases(
+    agent: str = "scheduling-v1",
+    tc002_passed: bool = True,
+) -> EvalResults:
+    """Two cases: TC-001 always passes, TC-002 controlled by tc002_passed."""
+    categories = [
+        CategorySummary(
+            category="functional",
+            total=2,
+            passed_count=2 if tc002_passed else 1,
+            pass_rate=1.0 if tc002_passed else 0.5,
+            threshold=0.8,
+            met_threshold=tc002_passed,
+        )
+    ]
+    cases = [
+        CaseResult(
+            case_id="TC-001",
+            agent=agent,
+            category="functional",
+            input_summary="Book appointment",
+            score=1.0,
+            passed=True,
+            rationale="ok",
+            trajectory=[],
+            latency_ms=100.0,
+            prompt_tokens=100,
+            completion_tokens=50,
+        ),
+        CaseResult(
+            case_id="TC-002",
+            agent=agent,
+            category="functional",
+            input_summary="Cancel appointment",
+            score=1.0 if tc002_passed else 0.0,
+            passed=tc002_passed,
+            rationale="ok",
+            trajectory=[],
+            latency_ms=100.0,
+            prompt_tokens=100,
+            completion_tokens=50,
+        ),
+    ]
+    return EvalResults.create(agent=agent, cases=cases, categories=categories)
 
 
 @pytest.fixture
@@ -223,3 +269,72 @@ def test_eval_controller_saves_to_run_store(tmp_path: Path) -> None:
 
     assert len(saved) == 1
     assert saved[0].agent == "scheduling-v1"
+
+
+# ── cases_for_run ─────────────────────────────────────────────────────────────
+
+
+def test_cases_for_run_empty_when_no_cases_saved(store: RunStore) -> None:
+    run_id = store.save(_make_result())
+    assert store.cases_for_run(run_id) == []
+
+
+def test_cases_for_run_returns_stored_cases(store: RunStore) -> None:
+    run_id = store.save(_make_result_with_cases())
+    cases = store.cases_for_run(run_id)
+    assert len(cases) == 2
+    case_ids = {c[0] for c in cases}
+    assert case_ids == {"TC-001", "TC-002"}
+
+
+def test_cases_for_run_records_pass_flag(store: RunStore) -> None:
+    run_id = store.save(_make_result_with_cases(tc002_passed=False))
+    cases = store.cases_for_run(run_id)
+    by_id = {c[0]: c[2] for c in cases}
+    assert by_id["TC-001"] is True
+    assert by_id["TC-002"] is False
+
+
+def test_cases_for_run_isolated_between_runs(store: RunStore) -> None:
+    id_a = store.save(_make_result_with_cases(tc002_passed=True))
+    id_b = store.save(_make_result_with_cases(tc002_passed=False))
+    map_a = {c[0]: c[2] for c in store.cases_for_run(id_a)}
+    map_b = {c[0]: c[2] for c in store.cases_for_run(id_b)}
+    assert map_a["TC-002"] is True
+    assert map_b["TC-002"] is False
+
+
+# ── flip list computation (helper used by delta view) ─────────────────────────
+
+
+def test_flip_list_detects_regression(store: RunStore) -> None:
+    id_a = store.save(_make_result_with_cases(tc002_passed=True))
+    id_b = store.save(_make_result_with_cases(tc002_passed=False))
+    map_a = {(cid, cat): p for cid, cat, p in store.cases_for_run(id_a)}
+    map_b = {(cid, cat): p for cid, cat, p in store.cases_for_run(id_b)}
+    common = set(map_a) & set(map_b)
+    regressions = [(cid, cat) for cid, cat in common if map_a[(cid, cat)] and not map_b[(cid, cat)]]
+    assert ("TC-002", "functional") in regressions
+    assert ("TC-001", "functional") not in regressions
+
+
+def test_flip_list_detects_improvement(store: RunStore) -> None:
+    id_a = store.save(_make_result_with_cases(tc002_passed=False))
+    id_b = store.save(_make_result_with_cases(tc002_passed=True))
+    map_a = {(cid, cat): p for cid, cat, p in store.cases_for_run(id_a)}
+    map_b = {(cid, cat): p for cid, cat, p in store.cases_for_run(id_b)}
+    common = set(map_a) & set(map_b)
+    improvements = [
+        (cid, cat) for cid, cat in common if not map_a[(cid, cat)] and map_b[(cid, cat)]
+    ]
+    assert ("TC-002", "functional") in improvements
+
+
+def test_flip_list_empty_when_no_change(store: RunStore) -> None:
+    id_a = store.save(_make_result_with_cases(tc002_passed=True))
+    id_b = store.save(_make_result_with_cases(tc002_passed=True))
+    map_a = {(cid, cat): p for cid, cat, p in store.cases_for_run(id_a)}
+    map_b = {(cid, cat): p for cid, cat, p in store.cases_for_run(id_b)}
+    common = set(map_a) & set(map_b)
+    flips = [(cid, cat) for cid, cat in common if map_a[(cid, cat)] != map_b[(cid, cat)]]
+    assert flips == []
