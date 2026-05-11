@@ -76,6 +76,15 @@ def _build_parser() -> argparse.ArgumentParser:
         metavar="VERSION",
         help="Agent version string stored alongside the run (default: '').",
     )
+    p.add_argument(
+        "--solution",
+        default=None,
+        metavar="NAME",
+        help=(
+            "Run solution eval: load cases/{NAME}/solution.yaml and evaluate "
+            "all declared agents via SolutionController. Writes solution_results.json."
+        ),
+    )
     return p
 
 
@@ -397,6 +406,38 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover
 
     args = _build_parser().parse_args(argv)
 
+    # ── Solution eval (L2) ────────────────────────────────────────────────────
+    if args.solution:
+        try:
+            from hlsharness.judge import Judge
+            from hlsharness.solution_controller import SolutionController
+            from hlsharness.solution_manifest import SolutionManifest
+
+            solution_yaml_path = Path(args.cases) / args.solution / "solution.yaml"
+            manifest = SolutionManifest.load(solution_yaml_path)
+            manifest.validate(cases_path=Path(args.cases))
+
+            solution_ctrl = SolutionController(
+                manifest=manifest,
+                judge=Judge(),
+                cases_path=Path(args.cases),
+            )
+            solution_result = solution_ctrl.run()
+        except ValueError as exc:
+            _console.print(f"[red]Error:[/red] {exc}")
+            return 2
+        except Exception as exc:  # noqa: BLE001
+            _console.print(f"[red]Unexpected error:[/red] {exc}")
+            return 2
+
+        out_path = Path(args.out).parent / "solution_results.json"
+        solution_result.write_json(out_path)
+        _console.print(f"Solution results written to [bold]{out_path}[/bold]")
+        overall = "[green]PASSED[/green]" if solution_result.passed else "[red]FAILED[/red]"
+        _console.print(f"\n[bold]Solution overall:[/bold] {overall}\n")
+        return 0 if solution_result.passed else 1
+
+    # ── Single-agent eval (L1) ────────────────────────────────────────────────
     try:
         from hlsharness.controller import EvalController
         from hlsharness.judge import Judge
