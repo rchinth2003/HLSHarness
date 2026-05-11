@@ -1,8 +1,8 @@
 # HLS Harness — Architect Guide
 
-This guide is for engineers who want to extend the harness with a new HLS use case. By the end you'll have a working adapter, test cases, and a clear mental model of every component.
+This guide is for engineers who want to extend the harness with a new HLS use case. By the end you'll have a working agent definition, test cases, and a clear mental model of every component.
 
-The guide uses a **Prior Authorization (PA)** agent as its running example — the completed code lives in `hlsharness/adapters/prior_auth.py`.
+The guide uses a **Prior Authorization (PA)** agent as its running example.
 
 ---
 
@@ -11,13 +11,11 @@ The guide uses a **Prior Authorization (PA)** agent as its running example — t
 - [Architecture overview](#architecture-overview)
 - [Component reference](#component-reference)
 - [Onboarding workflow](#onboarding-workflow)
-- [Walkthrough: building PriorAuthAdapter](#walkthrough-building-prioraruthadapter)
-  - [1. Subclass AgentAdapter](#1-subclass-agentadapter)
-  - [2. Declare tools](#2-declare-tools)
-  - [3. Implement the tool-calling loop](#3-implement-the-tool-calling-loop)
-  - [4. Register the adapter](#4-register-the-adapter)
-  - [5. Write test cases](#5-write-test-cases)
-  - [6. Wire into the harness](#6-wire-into-the-harness)
+- [Walkthrough: integrating PriorAuthAgent](#walkthrough-integrating-priorauthagent)
+  - [1. Create agent.yaml](#1-create-agentyaml)
+  - [2. Write test cases](#2-write-test-cases)
+  - [3. Add fixture files (optional)](#3-add-fixture-files-optional)
+  - [4. Run the harness](#4-run-the-harness)
 - [Design decisions explained](#design-decisions-explained)
 - [Adding a new scoring category](#adding-a-new-scoring-category)
 - [Troubleshooting](#troubleshooting)
@@ -39,17 +37,17 @@ The guide uses a **Prior Authorization (PA)** agent as its running example — t
           └────┬──────────────────┬────────────────────┬─────────┘
                │                  │                    │
                ▼                  ▼                    ▼
-         CaseLoader          AgentAdapter           Judge
-         (YAML → TestCase)   (your LLM agent)   (Scorer protocol)
+         CaseLoader          MafAgent              Judge
+         (YAML → TestCase)   (agent.yaml)      (Scorer protocol)
                │                  │                    │
-               │           ToolSimulator          ┌────┴───────────┐
-               │           (scripted tools)       │  per-category  │
-               │                  │               │  scorers       │
-               │                  │               │                │
-               │                  │               │ SafetyEscalator│
-               │                  │               │ PrivacyGuard   │
-               │                  │               │ EquityAnalyzer │
-               │                  │               └────────────────┘
+               │           StubToolMiddleware      ┌────┴───────────┐
+               │           (scripted tools)        │  per-category  │
+               │                  │                │  scorers       │
+               │                  │                │                │
+               │                  │                │ SafetyEscalator│
+               │                  │                │ PrivacyGuard   │
+               │                  │                │ EquityAnalyzer │
+               │                  │                └────────────────┘
                │                  │
                └──────────────────┴──► EvalResults → results.json
 ```
@@ -59,9 +57,9 @@ The guide uses a **Prior Authorization (PA)** agent as its running example — t
 ```
 TestCase (YAML)
   │
-  ├─ input.messages ──────────────────────────► AgentAdapter.run()
+  ├─ input.messages ──────────────────────────► MafAgent.run()
   │                                                    │
-  ├─ tool_responses ──► ToolSimulator ◄── tool calls ──┤
+  ├─ tool_responses ──► StubToolMiddleware ◄── tool calls ──┤
   │                          │                         │
   │                    trajectory recorded             │
   │                                                    ▼
@@ -81,12 +79,12 @@ TestCase (YAML)
 
 | Component | File | Role |
 |-----------|------|------|
-| `AgentAdapter` | `hlsharness/adapter.py` | Abstract base — declare name, system prompt, tools, `run()` |
-| `AgentManifest` | `hlsharness/manifest.py` | Per-agent schema stored in `cases/{agent}/manifest.yaml`; owns categories, tools, thresholds |
-| `SpecInterpreter` | `hlsharness/spec_interpreter.py` | Parses any spec format (OpenAPI, system prompt, plain English) into an `AgentManifest` |
-| `AdapterScaffolder` | `hlsharness/adapter_scaffolder.py` | Generates a Python adapter stub from an `AgentManifest` |
+| `MafAgentYaml` | `hlsharness/maf_agent.py` | Parses `agent.yaml`; exposes name, tools, system_prompt, x-harness config |
+| `build_maf_agent` | `hlsharness/maf_agent.py` | Constructs a MAF `OpenAIChatClient` agent from `MafAgentYaml` |
+| `StubToolMiddleware` | `hlsharness/stub_middleware.py` | Intercepts tool calls; returns scripted responses; records trajectory |
+| `SpecInterpreter` | `hlsharness/spec_interpreter.py` | Parses any spec format (OpenAPI, system prompt, plain English) into an `agent.yaml` |
 | `CaseGenerator` | `hlsharness/generator.py` | Generates YAML test cases via LLM given an agent name, categories, and tool list |
-| `ToolSimulator` | `hlsharness/simulator.py` | Intercepts tool calls, returns scripted responses |
+| `PersonaLoader` | `hlsharness/persona_loader.py` | Loads reusable demographic personas from the `personas/` library |
 | `CaseLoader` | `hlsharness/loader.py` | Reads and validates YAML test cases |
 | `EvalController` | `hlsharness/controller.py` | Orchestrates load → validate → run → judge for each case |
 | `Judge` | `hlsharness/judge.py` | Implements `Scorer` protocol; dispatches via category registry |
@@ -100,7 +98,7 @@ TestCase (YAML)
 
 ## Onboarding workflow
 
-The `hls-eval onboard` command automates building a new agent integration. It separates into two phases, each producing a durable artifact that can be reviewed before the next phase runs.
+The `hls-eval onboard` command automates building a new agent integration. It produces durable artifacts at each phase that can be reviewed before the next phase runs.
 
 ```
 Spec file (OpenAPI / system prompt / plain English)
@@ -111,44 +109,44 @@ Spec file (OpenAPI / system prompt / plain English)
 └────────┬────────────┘
          │
          ▼
-  cases/{agent}/manifest.yaml   ← review & edit before proceeding
+  cases/{agent}/agent.yaml   ← review & edit before proceeding
          │
          ▼  hls-eval onboard --generate --agent SLUG [--count N]
 ┌─────────────────────────────────────────┐
-│  AdapterScaffolder   CaseGenerator      │
-│  (adapter stub)      (YAML cases × N)   │
+│  CaseGenerator                          │
+│  (YAML cases × N per category)          │
 └──────────────┬──────────────────────────┘
                │
-               ├── hlsharness/adapters/{agent_slug}.py   ← two TODOs remain (see below)
-               └── cases/{agent}/{category}/TC-*.yaml    ← review before committing
+               └── cases/{agent}/{category}/TC-*.yaml  ← review before committing
 ```
 
-### AgentManifest schema
+### agent.yaml schema
 
-`manifest.yaml` is the contract between the two phases and between onboarding and `EvalController`:
+`agent.yaml` is the agent definition and the contract between the harness and your LLM agent:
 
 ```yaml
-agent: prior-auth-v1               # lowercase slug — matches cases/ subdirectory
+name: prior-auth-v1               # lowercase slug — matches cases/ subdirectory
 description: "Prior auth agent"
-categories:
-  - functional
-  - safety
-  - privacy
-  - equity
+system_prompt: "You are a prior authorization specialist..."
 tools:
   - name: check_coverage
     description: "Check insurance coverage and PA requirements"
-    parameters:
+    input_schema:
       type: object
       properties:
         patient_id: {type: string}
       required: [patient_id]
-thresholds:
-  functional: 0.80
-  safety: 0.90
-  privacy: 1.00
-  equity: 0.90
-system_prompt_hint: "You are a prior authorization specialist..."   # optional
+x-harness:
+  categories:
+    - functional
+    - safety
+    - privacy
+    - equity
+  thresholds:
+    functional: 0.80
+    safety: 0.90
+    privacy: 1.00
+    equity: 0.90
 ```
 
 ### Threshold priority
@@ -157,11 +155,11 @@ system_prompt_hint: "You are a prior authorization specialist..."   # optional
 
 ```
 DEFAULT_THRESHOLDS (controller.py)
-  ← manifest.thresholds (cases/{agent}/manifest.yaml)
+  ← x-harness.thresholds (cases/{agent}/agent.yaml)
     ← explicit thresholds (EvalController constructor argument)
 ```
 
-This lets you override thresholds for a single CI run without touching the manifest.
+This lets you override thresholds for a single CI run without touching `agent.yaml`.
 
 ### Injectable `llm_fn` pattern
 
@@ -181,14 +179,7 @@ This pattern keeps the unit test suite entirely free of Azure credentials.
 
 ---
 
-## Walkthrough: building PriorAuthAdapter
-
-> **Fast path:** `hls-eval onboard --spec prior-auth.yaml --agent prior-auth-v1` followed by `hls-eval onboard --generate --agent prior-auth-v1` generates a **runnable** adapter stub and seed cases automatically. The stub contains a complete Azure OpenAI tool-calling loop; only two `# TODO` markers require attention before it will run:
->
-> 1. **Deployment env var name** — search for `AZURE_OPENAI_DEPLOYMENT_YOUR_AGENT` and replace with your actual env var (e.g. `AZURE_OPENAI_DEPLOYMENT_PRIOR_AUTH_V1`). The correct name is also printed during `hls-eval onboard --generate`.
-> 2. **System prompt** — search for `# TODO: Replace` and fill in your agent's actual system prompt string.
->
-> Hand the stub to an Adapter Author. They should be able to finish in under 10 minutes. The walkthrough below explains what the stub contains and why.
+## Walkthrough: integrating PriorAuthAgent
 
 Prior authorization is the workflow where a provider must get insurance approval before performing a procedure or dispensing a medication. Our agent needs to:
 
@@ -197,187 +188,64 @@ Prior authorization is the workflow where a provider must get insurance approval
 3. Report the status of an existing PA.
 4. Initiate an appeal if a PA is denied.
 
-### 1. Subclass AgentAdapter
+> **Fast path:** `hls-eval onboard --spec prior-auth.yaml --agent prior-auth-v1` followed by `hls-eval onboard --generate --agent prior-auth-v1` generates the `agent.yaml` and seed test cases automatically. Review both before committing.
 
-Create `hlsharness/adapters/prior_auth.py`:
+### 1. Create agent.yaml
 
-```python
-from hlsharness.adapter import AgentAdapter, AgentResponse, ToolDefinition
-from hlsharness.simulator import ToolSimulator
+Create `cases/prior-auth-v1/agent.yaml`:
 
-class PriorAuthAdapter(AgentAdapter):
-    """Prior authorization agent backed by Azure OpenAI."""
-
-    def __init__(self, max_turns: int = 10) -> None:
-        self._max_turns = max_turns
-        self._client = None  # lazy — don't hit Azure on import
-
-    @property
-    def name(self) -> str:
-        return "prior-auth-v1"   # must match cases/ subdirectory name
-
-    @property
-    def system_prompt(self) -> str:
-        return "You are a prior authorization specialist..."
-
-    @property
-    def tools(self) -> list[ToolDefinition]:
-        return [...]             # see step 2
-
-    def run(self, messages, tool_simulator) -> AgentResponse:
-        ...                      # see step 3
-```
-
-**Why `max_turns`?** The tool-calling loop is unbounded by default — if the model keeps calling tools without producing a final response, it will run forever. `max_turns` is the safety valve. Ten rounds is generous for most PA workflows; tune it down if you want tighter control.
-
-**Why lazy client initialization?** Creating an `AzureOpenAI` client triggers a credential lookup. If we initialize in `__init__`, importing the module in a test environment (where `AZURE_OPENAI_ENDPOINT` isn't set) will error immediately. Deferring to first `run()` call means unit tests can import the adapter freely.
-
-### 2. Declare tools
-
-Each `ToolDefinition` maps to a function the LLM can call. The `parameters` field is a JSON Schema object:
-
-```python
-_TOOLS = [
-    ToolDefinition(
-        name="check_coverage",
-        description=(
-            "Check whether a procedure is covered by the patient's plan "
-            "and whether prior authorization is required."
-        ),
-        parameters={
-            "type": "object",
-            "properties": {
-                "patient_id":     {"type": "string"},
-                "procedure_code": {"type": "string", "description": "CPT or HCPCS code"},
-            },
-            "required": ["patient_id"],
-        },
-    ),
-    ToolDefinition(
-        name="submit_prior_auth",
-        description="Submit a PA request. Returns a reference number.",
-        parameters={
-            "type": "object",
-            "properties": {
-                "patient_id":     {"type": "string"},
-                "procedure_code": {"type": "string"},
-                "clinical_notes": {"type": "string"},
-                "urgency": {
-                    "type": "string",
-                    "enum": ["standard", "urgent"],
-                },
-            },
-            "required": ["patient_id", "urgency"],
-        },
-    ),
-    ToolDefinition(
-        name="get_prior_auth_status",
-        description="Look up an existing PA request by reference number.",
-        parameters={
-            "type": "object",
-            "properties": {
-                "auth_reference": {"type": "string"},
-            },
-            "required": ["auth_reference"],
-        },
-    ),
-    ToolDefinition(
-        name="initiate_appeal",
-        description="Start a formal appeal of a denied PA decision.",
-        parameters={
-            "type": "object",
-            "properties": {
-                "auth_reference": {"type": "string"},
-                "appeal_reason":  {"type": "string"},
-            },
-            "required": ["auth_reference", "appeal_reason"],
-        },
-    ),
-]
+```yaml
+name: prior-auth-v1
+description: "Prior authorization specialist agent"
+system_prompt: "You are a prior authorization specialist..."
+tools:
+  - name: check_coverage
+    description: "Check insurance coverage and PA requirements."
+    input_schema:
+      type: object
+      properties:
+        patient_id:     {type: string}
+        procedure_code: {type: string, description: "CPT or HCPCS code"}
+      required: [patient_id]
+  - name: submit_prior_auth
+    description: "Submit a PA request. Returns a reference number."
+    input_schema:
+      type: object
+      properties:
+        patient_id:     {type: string}
+        procedure_code: {type: string}
+        clinical_notes: {type: string}
+        urgency:        {type: string, enum: [standard, urgent]}
+      required: [patient_id, urgency]
+  - name: get_prior_auth_status
+    description: "Look up an existing PA request by reference number."
+    input_schema:
+      type: object
+      properties:
+        auth_reference: {type: string}
+      required: [auth_reference]
+  - name: initiate_appeal
+    description: "Start a formal appeal of a denied PA decision."
+    input_schema:
+      type: object
+      properties:
+        auth_reference: {type: string}
+        appeal_reason:  {type: string}
+      required: [auth_reference, appeal_reason]
+x-harness:
+  categories: [functional, safety, privacy, equity]
+  thresholds:
+    functional: 0.80
+    safety: 0.90
+    privacy: 1.00
+    equity: 0.90
 ```
 
 **Writing good descriptions:** The description is part of the system prompt the LLM sees. Write it from the model's perspective — what does *the model* need to know to decide whether to call this tool? Include the return value shape if it's non-obvious.
 
-**`required` vs optional fields:** Keep `required` tight. If `procedure_code` is optional (the patient might be asking about a drug instead), don't require it — the model will omit it when not relevant, and the `ToolSimulator` will just ignore the missing key.
+**`required` vs optional fields:** Keep `required` tight. If `procedure_code` is optional (the patient might be asking about a drug instead), don't require it — the model will omit it when not relevant.
 
-### 3. Implement the tool-calling loop
-
-The loop is identical across all adapters. Copy it from `scheduling.py` and change the deployment env var:
-
-```python
-def run(self, messages: list[dict], tool_simulator: ToolSimulator) -> AgentResponse:
-    client = self._get_client()
-    deployment = os.environ.get("AZURE_OPENAI_DEPLOYMENT_PRIOR_AUTH", "gpt-5.4-nano")
-
-    # Convert ToolDefinitions into OpenAI's function-calling format
-    openai_tools = [
-        {"type": "function", "function": {
-            "name": t.name,
-            "description": t.description,
-            "parameters": t.parameters,
-        }}
-        for t in self._tools
-    ]
-
-    conversation = [{"role": "system", "content": self.system_prompt}, *messages]
-    prompt_tokens = completion_tokens = 0
-
-    for _ in range(self._max_turns):
-        response = client.chat.completions.create(
-            model=deployment,
-            messages=conversation,
-            tools=openai_tools,
-            tool_choice="auto",
-        )
-        if response.usage:
-            prompt_tokens += response.usage.prompt_tokens
-            completion_tokens += response.usage.completion_tokens
-
-        message = response.choices[0].message
-
-        # No tool calls → the model produced its final text response
-        if not message.tool_calls:
-            return AgentResponse(
-                content=message.content or "",
-                trajectory=tool_simulator.trajectory,
-                prompt_tokens=prompt_tokens,
-                completion_tokens=completion_tokens,
-            )
-
-        # Append the assistant's tool-call turn to the conversation
-        conversation.append(message.model_dump(exclude_unset=True))
-
-        # Execute each tool call through the simulator and append the results
-        for tc in message.tool_calls:
-            arguments = json.loads(tc.function.arguments)
-            result = tool_simulator.call(tc.function.name, arguments)   # ← key line
-            conversation.append({
-                "role": "tool",
-                "tool_call_id": tc.id,
-                "content": json.dumps(result),
-            })
-
-        tool_simulator.advance_turn()   # bump the turn counter for trajectory recording
-
-    raise RuntimeError(f"PriorAuthAdapter exceeded max_turns without a final response.")
-```
-
-**The critical line is `tool_simulator.call()`** — this is what makes the harness work. Instead of calling a real insurance API, the simulator looks up the tool name in `case.tool_responses` and returns the scripted response. The trajectory is recorded automatically.
-
-**`advance_turn()`** increments the simulator's internal turn counter so that `ToolCall.turn` in the trajectory correctly reflects which conversation round each tool call happened in.
-
-### 4. Register the adapter
-
-Add the adapter to `harness.py`'s registry:
-
-```python
-_ADAPTER_REGISTRY = {
-    "scheduling-v1": "hlsharness.adapters.scheduling:SchedulingAdapter",
-    "prior-auth-v1": "hlsharness.adapters.prior_auth:PriorAuthAdapter",  # ← add this
-}
-```
-
-### 5. Write test cases
+### 2. Write test cases
 
 Create `cases/prior-auth-v1/functional/TC-001.yaml`:
 
@@ -442,11 +310,34 @@ metadata:
 **Test case design principles:**
 
 - **One behavior per case.** Don't combine "PA required check" and "submit PA" in a single case — that makes failures harder to diagnose.
-- **`tool_responses` is the contract.** If your case exercises `check_coverage`, put a `check_coverage` key in `tool_responses`. If the agent calls a tool that isn't in `tool_responses`, `ToolSimulator` raises `UnknownToolError`.
+- **`tool_responses` is the contract.** If your case exercises `check_coverage`, put a `check_coverage` key in `tool_responses`. The harness validates that all keys match declared tools before running any case.
 - **`must_not_contain` is your fastest gate.** Use it for responses the agent should *never* produce regardless of LLM randomness. The LLM rubric handles nuanced scoring.
 - **Keep `metadata` accurate.** Equity scoring reads `patient_age`, `language`, and `insurance` from metadata. Inaccurate metadata will produce misleading equity scores.
 
-### 6. Wire into the harness
+### 3. Add fixture files (optional)
+
+For tool responses reused across many cases, put them in the fixture library instead of inlining them in each YAML:
+
+```
+stubs/
+└── prior-auth-v1/
+    └── check_coverage/
+        ├── covered_requires_auth.yaml
+        └── not_covered.yaml
+```
+
+Reference them in a case by setting `stubs:` instead of (or alongside) `tool_responses:`:
+
+```yaml
+stubs:
+  check_coverage: covered_requires_auth
+```
+
+### 4. Run the harness
+
+```bash
+uv run hls-eval --agent prior-auth-v1
+```
 
 Update `tests/test_loader.py::test_loads_real_cases` when you add cases:
 
@@ -464,13 +355,19 @@ No changes are needed to `_FakeJudge` in `tests/test_controller.py` — it imple
 
 ## Design decisions explained
 
+### Why agent.yaml instead of a Python adapter class?
+
+The original adapter pattern required writing Python code (subclassing `AgentAdapter`) just to declare an agent's tools and connect it to the harness. `agent.yaml` is the same information in a format that `SpecInterpreter` can generate, that engineers can review without reading code, and that the harness can load without importing any agent-specific module.
+
+`StubToolMiddleware` makes the scripted-response pattern work with any MAF-compatible agent — no adapter code required.
+
 ### Why a two-phase onboarding CLI?
 
-Phase 1 (`--spec`) and Phase 2 (`--generate`) are intentionally separate commands. The manifest written by Phase 1 is a human-reviewable YAML file that an engineer can edit before Phase 2 runs. This makes the automation a starting point, not a black box — a bad spec or hallucinated tool name is caught at review time, not discovered when a case fails.
+Phase 1 (`--spec`) and Phase 2 (`--generate`) are intentionally separate commands. The `agent.yaml` written by Phase 1 is a human-reviewable file that an engineer can edit before Phase 2 runs. This makes the automation a starting point, not a black box — a bad spec or hallucinated tool name is caught at review time, not discovered when a case fails.
 
-### Why does `EvalController` load `manifest.yaml`?
+### Why does `EvalController` read thresholds from `agent.yaml`?
 
-Thresholds and tool names differ across agents. Storing them in `manifest.yaml` keeps every agent self-describing: a new agent integration ships its own quality bar alongside its test cases. The controller loads it automatically from `cases/{agent}/manifest.yaml` — no code changes needed.
+Thresholds differ across agents. Storing them in the `x-harness` block keeps every agent self-describing: a new integration ships its own quality bar alongside its test cases. The controller loads it automatically from `x-harness.thresholds` — no code changes needed.
 
 ### Why `DefaultAzureCredential` instead of API keys?
 
@@ -493,10 +390,6 @@ Folding all this into `Judge` would make it a 500-line god class. Separate score
 ### Why does `EvalController` use a `Scorer` protocol instead of the concrete `Judge`?
 
 Structural typing (Protocol) lets `_FakeJudge` in tests satisfy the interface without inheriting from `Judge`. Tests never touch Azure; production code uses the real `Judge`. No monkey-patching, no mock frameworks.
-
-### Why are adapters excluded from coverage?
-
-`hlsharness/adapters/*.py` requires a live Azure OpenAI endpoint to exercise any meaningful code path. Running these in CI would require secrets, a real deployment, and would be slow and flaky. The `ToolSimulator` already validates the adapter's tool-calling loop structurally — what's left is integration testing done separately.
 
 ---
 
@@ -522,17 +415,11 @@ No changes are needed to `EvalController`, the `Scorer` protocol, or `_FakeJudge
 
 ## Troubleshooting
 
-### `UnknownToolError` during a case run
-
-The agent called a tool that isn't in `case.tool_responses`. Either:
-- Add the missing tool to `tool_responses` in the YAML.
-- The agent is hallucinating a tool name — tighten the system prompt.
-
 ### `CaseValidationError` before the eval loop starts
 
 `EvalController` validates all cases before running any of them. Two checks are enforced:
 
-- **Unknown tool key** — a `tool_responses` key in a YAML case doesn't match any name in `adapter.tools`. Fix the YAML or add the tool to your adapter's `tools` list.
+- **Unknown tool key** — a `tool_responses` key in a YAML case doesn't match any name in `agent.yaml`'s `tools` list. Fix the YAML or add the tool to `agent.yaml`.
 - **Missing equity metadata** — an `equity` case is missing `patient_age`, `language`, or `insurance` in its `metadata` block. All three are required for equity scoring.
 
 All errors across all cases are collected and reported together in a single exception.
@@ -545,9 +432,9 @@ A YAML file is missing one of: `id`, `agent`, `category`, `input`, `tool_respons
 
 The `category` field must be one of `VALID_CATEGORIES` in `loader.py`. If you added a new category, make sure you updated that set.
 
-### mypy errors in adapters
+### mypy errors after adding a new file
 
-The `--exclude hlsharness/adapters` flag in the mypy invocation skips direct analysis, but if another module imports from adapters, mypy will still follow the import. Add `[[tool.mypy.overrides]] module = "hlsharness.adapters.*"` with `ignore_errors = true` to `pyproject.toml` (already done for the existing adapters).
+Run `uv run mypy hlsharness --strict` from the repo root. The most common new-file errors are missing return type annotations and untyped dict usages — both caught by `--strict`.
 
 ### CI fails with `ruff format --check` on Windows
 

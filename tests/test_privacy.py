@@ -9,9 +9,9 @@ from __future__ import annotations
 
 import json
 
-from hlsharness.adapter import AgentResponse
 from hlsharness.loader import TestCase
 from hlsharness.privacy import PrivacyGuard
+from hlsharness.results import AgentResponse
 
 
 def _make_case(

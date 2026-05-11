@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
-from hlsharness.adapter import AgentAdapter, AgentResponse, ToolDefinition
 from hlsharness.controller import CaseValidationError, EvalController
 from hlsharness.judge import JudgeResult
 from hlsharness.loader import TestCase
-from hlsharness.simulator import ToolSimulator
+from hlsharness.maf_agent import MafToolDef
+from hlsharness.results import AgentResponse
 
 
 class _FakeJudge:
@@ -18,32 +19,20 @@ class _FakeJudge:
         return JudgeResult(score=1.0, passed=True, rationale="ok")
 
 
-class _AdapterWithTools(AgentAdapter):
-    def __init__(self, tool_names: list[str]) -> None:
-        self._tools = [ToolDefinition(name=n, description="") for n in tool_names]
-
-    @property
-    def name(self) -> str:
-        return "scheduling-v1"
-
-    @property
-    def system_prompt(self) -> str:
-        return ""
-
-    @property
-    def tools(self) -> list[ToolDefinition]:
-        return self._tools
-
-    def run(self, messages: list[dict], tool_simulator: ToolSimulator) -> AgentResponse:  # type: ignore[override]
-        return AgentResponse(content="ok", prompt_tokens=0, completion_tokens=0)
+def _agent_yaml_path() -> Path:
+    return Path("cases/scheduling-v1/agent.yaml")
 
 
 def _make_controller(tool_names: list[str]) -> EvalController:
-    return EvalController(
-        adapter=_AdapterWithTools(tool_names),
-        judge=_FakeJudge(),  # type: ignore[arg-type]
-        cases_path=Path("cases"),
-    )
+    """Build a MAF controller, then override tools to the given list."""
+    with patch("hlsharness.maf_agent.build_maf_agent", return_value=None):
+        ctrl = EvalController(
+            agent_yaml_path=_agent_yaml_path(),
+            judge=_FakeJudge(),  # type: ignore[arg-type]
+            cases_path=Path("cases"),
+        )
+    ctrl._agent_yaml.tools = [MafToolDef(name=n, description="") for n in tool_names]
+    return ctrl
 
 
 def _equity_case(
@@ -76,10 +65,10 @@ def _functional_case(tool_responses: dict | None = None) -> TestCase:
     )
 
 
-# ── tool_responses validation ─────────────────────────────────────────────────
+# -- tool_responses validation -------------------------------------------------
 
 
-def test_unknown_tool_raises_before_any_case_runs(tmp_path: Path) -> None:
+def test_unknown_tool_raises_before_any_case_runs() -> None:
     controller = _make_controller(tool_names=["book_appointment"])
     case = _functional_case(tool_responses={"typo_tool": "response"})
     with pytest.raises(CaseValidationError, match="typo_tool"):
@@ -92,13 +81,13 @@ def test_valid_tool_name_does_not_raise() -> None:
     controller._validate_cases([case])  # no exception
 
 
-def test_adapter_with_no_tools_and_empty_tool_responses_does_not_raise() -> None:
+def test_no_tools_and_empty_tool_responses_does_not_raise() -> None:
     controller = _make_controller(tool_names=[])
     case = _functional_case(tool_responses={})
     controller._validate_cases([case])  # no exception
 
 
-# ── equity metadata validation ────────────────────────────────────────────────
+# -- equity metadata validation ------------------------------------------------
 
 
 def test_equity_missing_patient_age_raises() -> None:
@@ -133,11 +122,11 @@ def test_equity_with_all_keys_does_not_raise() -> None:
 def test_non_equity_case_not_checked_for_equity_metadata() -> None:
     controller = _make_controller(tool_names=[])
     case = _functional_case()
-    case.metadata = {}  # missing equity keys — should not raise for non-equity
+    case.metadata = {}
     controller._validate_cases([case])  # no exception
 
 
-# ── multiple errors reported together ─────────────────────────────────────────
+# -- multiple errors reported together -----------------------------------------
 
 
 def test_multiple_errors_across_cases_reported_in_one_exception() -> None:

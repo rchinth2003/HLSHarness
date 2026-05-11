@@ -15,9 +15,9 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from hlsharness.adapter import AgentResponse
 from hlsharness.base_scorer import BaseScorer, JudgeResult
 from hlsharness.loader import TestCase
+from hlsharness.results import AgentResponse
 
 # (phi_type, compiled_pattern)
 _PHI_PATTERNS: list[tuple[str, re.Pattern[str]]] = [

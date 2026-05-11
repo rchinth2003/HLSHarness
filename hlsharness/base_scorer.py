@@ -28,8 +28,8 @@ import os
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from hlsharness.adapter import AgentResponse
 from hlsharness.loader import TestCase
+from hlsharness.results import AgentResponse
 
 _DEFAULT_DEPLOYMENT = "gpt-5.4-pro"
 

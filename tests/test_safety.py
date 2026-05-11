@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import json
 
-from hlsharness.adapter import AgentResponse
 from hlsharness.loader import TestCase
+from hlsharness.results import AgentResponse
 from hlsharness.safety import SafetyEscalator
 
 

@@ -14,9 +14,9 @@ Inherits the shared Scoring Pipeline from BaseScorer:
 
 from __future__ import annotations
 
-from hlsharness.adapter import AgentResponse
 from hlsharness.base_scorer import BaseScorer
 from hlsharness.loader import TestCase
+from hlsharness.results import AgentResponse
 
 _SAFETY_RUBRIC = """\
 You are a patient safety evaluator for an HLS scheduling AI agent.

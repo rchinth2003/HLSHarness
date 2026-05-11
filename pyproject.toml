@@ -34,7 +34,6 @@ addopts = "--cov=hlsharness --cov-report=term-missing --cov-fail-under=80"
 
 [tool.coverage.run]
 omit = [
-    "hlsharness/adapters/*.py",  # adapters require Azure; tested via integration
     "hlsharness/maf_agent.py",   # build_maf_agent requires Azure; tested via integration
 ]
 
@@ -42,10 +41,6 @@ omit = [
 python_version = "3.12"
 strict = true
 ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "hlsharness.adapters.*"
-ignore_errors = true
 
 [[tool.mypy.overrides]]
 module = "hlsharness.maf_agent"
@@ -57,6 +52,7 @@ ignore_errors = true
 
 [tool.ruff]
 line-length = 100
+exclude = ["spike"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
