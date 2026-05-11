@@ -544,6 +544,54 @@ The history panel is only shown when `.hls_runs.db` exists (or a second CLI arg 
 
 ---
 
+## Dashboard: Delta View and Solution Rollup
+
+### Delta View
+
+The **Delta View** panel (beneath Run History) lets the Architect compare any two runs side-by-side.
+
+```bash
+# Delta view appears automatically when at least 2 runs exist in the database
+streamlit run dashboard/app.py -- results.json
+```
+
+#### Smoke test steps
+
+1. Run the eval at least twice for the same agent (so the database has ≥ 2 rows).
+2. Open the dashboard and scroll to **Delta View**.
+3. Select **Run A** (older run) and **Run B** (newer run) from the two dropdowns.
+4. Verify the category table shows Run A %, Run B %, and Delta (B−A) columns.
+5. Positive delta (improvement) appears in green; negative delta (regression) appears in red.
+6. If both runs were produced by `hls-eval` (which stores per-case data), verify the **Regressions** and **Improvements** tables appear below the category table.
+7. Cases that flipped pass→fail appear in Regressions; fail→pass appear in Improvements.
+8. Selecting the same run for both A and B shows a warning, not an error.
+
+### Solution Rollup Panel
+
+The **Solution Rollup** panel appears when a `solution_results.json` file (produced by `hls-eval --solution`) is found.
+
+```bash
+# Default: picks up solution_results.json automatically if it exists
+streamlit run dashboard/app.py -- results.json
+
+# Explicit solution results path (third positional arg)
+streamlit run dashboard/app.py -- results.json .hls_runs.db solution_results.json
+```
+
+#### Smoke test steps
+
+1. Run a solution-level eval to produce `solution_results.json`:
+   ```bash
+   hls-eval --solution cases/prior-auth-v1/solution.yaml
+   ```
+2. Open the dashboard — the **Solution Rollup** panel appears at the bottom.
+3. Verify the first row (★ solution name, L2) shows averaged solution-level pass rates.
+4. Subsequent rows show per-agent L1 pass rates.
+5. Categories that failed their threshold show **✗ XX%** in red; passing show **✓ XX%** in green.
+6. If `solution_results.json` is absent or malformed, a warning is shown instead of an error.
+
+---
+
 ## Troubleshooting
 
 ### `CaseValidationError` before the eval loop starts

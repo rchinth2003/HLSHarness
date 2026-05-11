@@ -16,7 +16,13 @@ from pathlib import Path
 
 import streamlit as st
 
-from dashboard.loader import DashCaseSummary, DashResults, load_results
+from dashboard.loader import (
+    DashCaseSummary,
+    DashResults,
+    DashSolutionResult,
+    load_results,
+    load_solution_results,
+)
 
 # ── page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -55,6 +61,15 @@ def _resolve_db_path() -> Path | None:
     if len(args) >= 2:
         return Path(args[1])
     default = Path(".hls_runs.db")
+    return default if default.exists() else None
+
+
+def _resolve_solution_path() -> Path | None:
+    """Return the solution_results.json path: third CLI arg, or default if it exists."""
+    args = sys.argv[1:]
+    if len(args) >= 3:
+        return Path(args[2])
+    default = Path("solution_results.json")
     return default if default.exists() else None
 
 
@@ -214,6 +229,209 @@ def _render_category_detail(results: DashResults) -> None:
                     st.divider()
 
 
+def _render_delta_view(agent: str, db_path: Path) -> None:
+    """Render side-by-side category delta table and case flip list for two runs."""
+    import pandas as pd
+
+    from hlsharness.run_store import RunStore
+
+    st.divider()
+    st.subheader("Delta View")
+
+    store = RunStore(db_path=db_path)
+    records = store.history(agent, limit=50)
+
+    if len(records) < 2:
+        st.info("Need at least 2 runs to compare.")
+        return
+
+    options = {
+        r.id: f"#{r.id}  {r.run_at[:19].replace('T', ' ')}  v{r.version or '—'}  {'✓' if r.passed else '✗'}"
+        for r in records
+    }
+    ids = list(options.keys())
+
+    col_a, col_b = st.columns(2)
+    with col_a:
+        id_a: int = st.selectbox(
+            "Run A",
+            options=ids,
+            format_func=lambda x: options[x],
+            index=1,
+            key="delta_run_a",
+        )
+    with col_b:
+        id_b: int = st.selectbox(
+            "Run B",
+            options=ids,
+            format_func=lambda x: options[x],
+            index=0,
+            key="delta_run_b",
+        )
+
+    if id_a == id_b:
+        st.warning("Select two different runs to compare.")
+        return
+
+    rec_a = next(r for r in records if r.id == id_a)
+    rec_b = next(r for r in records if r.id == id_b)
+
+    cats_a = {c.category: c.pass_rate for c in rec_a.categories}
+    cats_b = {c.category: c.pass_rate for c in rec_b.categories}
+    all_cats = sorted(set(cats_a) | set(cats_b))
+
+    rows = []
+    for cat in all_cats:
+        a = cats_a.get(cat)
+        b = cats_b.get(cat)
+        delta = (b - a) if (a is not None and b is not None) else None
+        rows.append(
+            {
+                "Category": cat.capitalize(),
+                "Run A": _pct(a) if a is not None else "—",
+                "Run B": _pct(b) if b is not None else "—",
+                "Delta (B−A)": f"{delta:+.0%}" if delta is not None else "—",
+            }
+        )
+
+    def _color_delta(val: object) -> str:
+        if not isinstance(val, str) or val == "—":
+            return ""
+        if val.startswith("+"):
+            return f"color: {_PASS_COLOR}; font-weight: bold"
+        if val.startswith("-"):
+            return f"color: {_FAIL_COLOR}; font-weight: bold"
+        return ""
+
+    st.dataframe(
+        pd.DataFrame(rows).style.map(_color_delta, subset=["Delta (B−A)"]),
+        use_container_width=True,
+        hide_index=True,
+    )
+
+    cases_a_raw = store.cases_for_run(id_a)
+    cases_b_raw = store.cases_for_run(id_b)
+
+    if cases_a_raw and cases_b_raw:
+        map_a = {(cid, cat): p for cid, cat, p in cases_a_raw}
+        map_b = {(cid, cat): p for cid, cat, p in cases_b_raw}
+        common = set(map_a) & set(map_b)
+        regressions = sorted(
+            (cid, cat) for cid, cat in common if map_a[(cid, cat)] and not map_b[(cid, cat)]
+        )
+        improvements = sorted(
+            (cid, cat) for cid, cat in common if not map_a[(cid, cat)] and map_b[(cid, cat)]
+        )
+
+        col_reg, col_imp = st.columns(2)
+        with col_reg:
+            st.markdown(
+                f'<span style="color:{_FAIL_COLOR};font-weight:bold">'
+                f"Regressions (pass→fail): {len(regressions)}</span>",
+                unsafe_allow_html=True,
+            )
+            if regressions:
+                st.dataframe(
+                    pd.DataFrame(regressions, columns=["Case ID", "Category"]),
+                    use_container_width=True,
+                    hide_index=True,
+                )
+            else:
+                st.caption("None")
+        with col_imp:
+            st.markdown(
+                f'<span style="color:{_PASS_COLOR};font-weight:bold">'
+                f"Improvements (fail→pass): {len(improvements)}</span>",
+                unsafe_allow_html=True,
+            )
+            if improvements:
+                st.dataframe(
+                    pd.DataFrame(improvements, columns=["Case ID", "Category"]),
+                    use_container_width=True,
+                    hide_index=True,
+                )
+            else:
+                st.caption("None")
+    else:
+        st.caption("Per-case flip data not available for one or both selected runs.")
+
+
+def _render_solution_rollup(sol: DashSolutionResult) -> None:
+    """Render L2 solution-level scores alongside per-agent L1 scores."""
+    import pandas as pd
+
+    st.divider()
+    overall_color = _PASS_COLOR if sol.passed else _FAIL_COLOR
+    overall_label = "✓ PASSED" if sol.passed else "✗ FAILED"
+
+    col_title, col_status = st.columns([3, 1])
+    with col_title:
+        st.subheader(f"Solution Rollup: `{sol.solution}`")
+        st.caption(f"**Run:** {sol.run_at[:19].replace('T', ' ')}")
+    with col_status:
+        st.markdown(
+            f"""
+            <div style="
+                background:{overall_color}22;
+                border:2px solid {overall_color};
+                border-radius:8px;
+                padding:12px;
+                text-align:center;
+                font-weight:bold;
+                color:{overall_color};
+                margin-top:12px;
+            ">{overall_label}</div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    seen: set[str] = set()
+    all_cats: list[str] = []
+    for c in sol.solution_categories:
+        if c.category not in seen:
+            seen.add(c.category)
+            all_cats.append(c.category)
+
+    rows = []
+    sol_cat_map = {c.category: c for c in sol.solution_categories}
+    sol_row: dict[str, object] = {"Agent": f"★ {sol.solution} (L2 solution)"}
+    for cat in all_cats:
+        cs = sol_cat_map.get(cat)
+        sol_row[cat.capitalize()] = (
+            (("✓ " if cs.met_threshold else "✗ ") + _pct(cs.pass_rate)) if cs else "—"
+        )
+    rows.append(sol_row)
+
+    for ar in sol.agent_rollups:
+        agent_cat_map = {c.category: c for c in ar.categories}
+        row: dict[str, object] = {"Agent": ar.agent}
+        for cat in all_cats:
+            cs = agent_cat_map.get(cat)
+            row[cat.capitalize()] = (
+                (("✓ " if cs.met_threshold else "✗ ") + _pct(cs.pass_rate)) if cs else "—"
+            )
+        rows.append(row)
+
+    df = pd.DataFrame(rows)
+    cat_cols = [c.capitalize() for c in all_cats]
+
+    def _color_cat(val: object) -> str:
+        if isinstance(val, str) and val.startswith("✗"):
+            return f"color: {_FAIL_COLOR}"
+        if isinstance(val, str) and val.startswith("✓"):
+            return f"color: {_PASS_COLOR}"
+        return ""
+
+    def _color_agent(val: object) -> str:
+        return "font-weight: bold" if isinstance(val, str) and val.startswith("★") else ""
+
+    styled = df.style.map(_color_agent, subset=["Agent"])
+    if cat_cols:
+        styled = styled.map(_color_cat, subset=cat_cols)
+
+    st.dataframe(styled, use_container_width=True, hide_index=True)
+
+
 def _render_run_history(agent: str, db_path: Path) -> None:
     """Render run history table and baseline-promotion UI."""
     import pandas as pd
@@ -353,6 +571,15 @@ def main() -> None:
     db_path = _resolve_db_path()
     if db_path is not None:
         _render_run_history(results.agent, db_path)
+        _render_delta_view(results.agent, db_path)
+
+    sol_path = _resolve_solution_path()
+    if sol_path is not None:
+        try:
+            sol = load_solution_results(sol_path)
+            _render_solution_rollup(sol)
+        except (ValueError, KeyError) as exc:
+            st.warning(f"Could not load solution results: {exc}")
 
 
 main()

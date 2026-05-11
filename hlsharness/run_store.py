@@ -43,6 +43,14 @@ CREATE TABLE IF NOT EXISTS category_scores (
     met_threshold      INTEGER NOT NULL DEFAULT 0,
     delta_vs_baseline  REAL
 );
+
+CREATE TABLE IF NOT EXISTS case_results (
+    id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id   INTEGER NOT NULL REFERENCES runs(id),
+    case_id  TEXT    NOT NULL,
+    category TEXT    NOT NULL,
+    passed   INTEGER NOT NULL
+);
 """
 
 
@@ -129,6 +137,14 @@ class RunStore:
                     for c in result.categories
                 ],
             )
+            if result.cases:
+                conn.executemany(
+                    """
+                    INSERT INTO case_results (run_id, case_id, category, passed)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    [(run_id, c.case_id, c.category, int(c.passed)) for c in result.cases],
+                )
         return run_id
 
     def load_baseline(self, agent: str, version: str = "") -> RunRecord | None:
@@ -162,7 +178,6 @@ class RunStore:
             conn.execute("UPDATE runs SET is_baseline = 1 WHERE id = ?", (run_id,))
 
     def history(self, agent: str, limit: int = 50) -> list[RunRecord]:
-        """Return runs for agent ordered by run_at descending."""
         with self._connect() as conn:
             rows = conn.execute(
                 """
@@ -175,6 +190,15 @@ class RunStore:
                 (agent, limit),
             ).fetchall()
             return [self._to_record(conn, row) for row in rows]
+
+    def cases_for_run(self, run_id: int) -> list[tuple[str, str, bool]]:
+        """Return ``(case_id, category, passed)`` tuples for all cases in a run."""
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT case_id, category, passed FROM case_results WHERE run_id = ?",
+                (run_id,),
+            ).fetchall()
+            return [(r["case_id"], r["category"], bool(r["passed"])) for r in rows]
 
     # ── internals ─────────────────────────────────────────────────────────────
 

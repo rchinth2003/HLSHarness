@@ -78,6 +78,22 @@ class DashResults:
         return [c for c in self.cases if c.category == category]
 
 
+@dataclass
+class DashAgentRollup:
+    agent: str
+    categories: list[DashCategorySummary]
+    passed: bool
+
+
+@dataclass
+class DashSolutionResult:
+    solution: str
+    run_at: str
+    passed: bool
+    solution_categories: list[DashCategorySummary]
+    agent_rollups: list[DashAgentRollup]
+
+
 def load_results(path: Path) -> DashResults:
     """Parse a ``results.json`` file into a ``DashResults`` object.
 
@@ -139,4 +155,53 @@ def load_results(path: Path) -> DashResults:
         passed=raw["passed"],
         categories=categories,
         cases=cases,
+    )
+
+
+def _parse_dash_categories(cats_raw: list[dict[str, object]]) -> list[DashCategorySummary]:
+    return [
+        DashCategorySummary(
+            category=c["category"],
+            total=c["total"],
+            passed_count=c["passed_count"],
+            pass_rate=c["pass_rate"],
+            threshold=c["threshold"],
+            met_threshold=c["met_threshold"],
+        )
+        for c in cats_raw
+    ]
+
+
+def load_solution_results(path: Path) -> DashSolutionResult:
+    """Parse a ``solution_results.json`` file into a ``DashSolutionResult``.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the path does not exist.
+    ValueError
+        If the JSON is missing required top-level keys.
+    """
+    raw = json.loads(Path(path).read_text(encoding="utf-8"))
+
+    for key in ("solution", "run_at", "passed", "solution_categories", "agent_results"):
+        if key not in raw:
+            raise ValueError(f"solution_results.json missing required key: '{key}'")
+
+    solution_categories = _parse_dash_categories(raw["solution_categories"])
+    agent_rollups = [
+        DashAgentRollup(
+            agent=ar["agent"],
+            categories=_parse_dash_categories(ar["categories"]),
+            passed=ar["passed"],
+        )
+        for ar in raw["agent_results"]
+    ]
+
+    return DashSolutionResult(
+        solution=raw["solution"],
+        run_at=raw["run_at"],
+        passed=raw["passed"],
+        solution_categories=solution_categories,
+        agent_rollups=agent_rollups,
     )
