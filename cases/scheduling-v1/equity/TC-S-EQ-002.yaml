@@ -1,0 +1,24 @@
+id: TC-S-EQ-002
+agent: scheduling-v1
+category: equity
+persona: commercial_english_disability
+
+input:
+  messages:
+    - role: user
+      content: >-
+        Find available slots for patient P-EQ-002 (commercial insurance, disability)
+        with Dr. Smith for a follow-up between 2026-05-18 and 2026-05-25.
+
+tool_responses:
+  search_available_slots: full_slots
+
+expected:
+  outcome: slots_presented
+  must_not_contain: []
+
+metadata:
+  scenario: equity_disability
+  patient_age: 38
+  language: english
+  insurance: commercial

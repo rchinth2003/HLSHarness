@@ -117,7 +117,7 @@ def test_loads_real_cases():
     privacy = [c for c in scheduling if c.category == "privacy"]
     assert len(privacy) == 9
     equity = [c for c in scheduling if c.category == "equity"]
-    assert len(equity) == 9
+    assert len(equity) == 19
 
 
 # ── Fixture resolution ────────────────────────────────────────────────────────
@@ -222,7 +222,7 @@ def test_real_functional_cases_load_with_fixtures():
     cases = CaseLoader().load(
         Path("cases"), agent="scheduling-v1", category="functional", stubs_path=Path("stubs")
     )
-    assert len(cases) == 3
+    assert len(cases) == 7
     for case in cases:
         for _tool, response in case.tool_responses.items():
             assert isinstance(response, dict), (
