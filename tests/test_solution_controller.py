@@ -463,3 +463,82 @@ def test_dag_missing_dep_in_results_excludes_agent(tmp_path: Path) -> None:
         result = ctrl.run()
 
     assert result.solution_categories == []  # booking excluded; no categories to rollup
+
+
+# ── case_dir path resolution ──────────────────────────────────────────────────
+
+
+def test_agent_entry_case_dir_default_empty() -> None:
+    entry = AgentEntry(name="orchestrator")
+    assert entry.case_dir == ""
+
+
+def test_manifest_load_parses_case_dir(tmp_path: Path) -> None:
+    yaml_text = """\
+solution: ps-v1
+agents:
+  - name: orchestrator
+    case_dir: cases/orchestrator-v1
+thresholds: {}
+"""
+    manifest_file = tmp_path / "solution.yaml"
+    manifest_file.write_text(yaml_text, encoding="utf-8")
+    manifest = SolutionManifest.load(manifest_file)
+    assert manifest.agents[0].case_dir == "cases/orchestrator-v1"
+
+
+def test_manifest_load_case_dir_absent_defaults_empty(tmp_path: Path) -> None:
+    yaml_text = """\
+solution: ps-v1
+agents:
+  - name: orchestrator
+thresholds: {}
+"""
+    manifest_file = tmp_path / "solution.yaml"
+    manifest_file.write_text(yaml_text, encoding="utf-8")
+    manifest = SolutionManifest.load(manifest_file)
+    assert manifest.agents[0].case_dir == ""
+
+
+def test_solution_controller_uses_case_dir_for_path(tmp_path: Path) -> None:
+    """When case_dir is set, EvalController receives that path, not entry.name."""
+    entries = [AgentEntry(name="orchestrator", case_dir="orchestrator-v1")]
+    manifest = SolutionManifest(solution="ps-v1", agents=entries, thresholds={})
+    l1 = _make_eval_results("orchestrator", [("functional", 1.0, 0.8)])
+
+    captured_paths: list[Path] = []
+
+    class _FakeCtrl:
+        def __init__(self, agent_yaml_path: Path, **_: object) -> None:
+            captured_paths.append(agent_yaml_path)
+
+        def run(self, **_: object) -> EvalResults:
+            return l1
+
+    ctrl = SolutionController(manifest=manifest, judge=MagicMock(), cases_path=tmp_path)
+    with patch("hlsharness.solution_controller.EvalController", _FakeCtrl):
+        ctrl.run()
+
+    assert captured_paths[0] == tmp_path / "orchestrator-v1" / "agent.yaml"
+
+
+def test_solution_controller_falls_back_to_name_when_case_dir_empty(tmp_path: Path) -> None:
+    """When case_dir is empty, EvalController path uses entry.name."""
+    entries = [AgentEntry(name="orchestrator")]
+    manifest = SolutionManifest(solution="ps-v1", agents=entries, thresholds={})
+    l1 = _make_eval_results("orchestrator", [("functional", 1.0, 0.8)])
+
+    captured_paths: list[Path] = []
+
+    class _FakeCtrl:
+        def __init__(self, agent_yaml_path: Path, **_: object) -> None:
+            captured_paths.append(agent_yaml_path)
+
+        def run(self, **_: object) -> EvalResults:
+            return l1
+
+    ctrl = SolutionController(manifest=manifest, judge=MagicMock(), cases_path=tmp_path)
+    with patch("hlsharness.solution_controller.EvalController", _FakeCtrl):
+        ctrl.run()
+
+    assert captured_paths[0] == tmp_path / "orchestrator" / "agent.yaml"

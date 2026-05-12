@@ -92,7 +92,8 @@ class SolutionController:
         agent_results: list[EvalResults] = []
 
         for entry in self._manifest.agents:
-            agent_yaml_path = self._cases_path / entry.name / "agent.yaml"
+            resolved_dir = entry.case_dir if entry.case_dir else entry.name
+            agent_yaml_path = self._cases_path / resolved_dir / "agent.yaml"
             ctrl = EvalController(
                 agent_yaml_path=agent_yaml_path,
                 judge=self._judge,
