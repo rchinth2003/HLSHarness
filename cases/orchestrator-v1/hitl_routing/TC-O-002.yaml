@@ -1,0 +1,21 @@
+id: TC-O-002
+agent: orchestrator-v1
+category: hitl_routing
+
+input:
+  messages:
+    - role: user
+      content: "I need to see a doctor for my heart, I think. Or maybe it's just stress?"
+
+tool_responses: {}
+
+expected:
+  escalate: true
+  reason_code: ambiguous_intent
+
+metadata:
+  scenario: ambiguous_specialty_hitl
+  patient_age: 55
+  language: english
+  insurance: commercial
+  confidence_gap: high

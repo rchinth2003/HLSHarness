@@ -1,0 +1,24 @@
+id: TC-O-005
+agent: orchestrator-v1
+category: functional
+
+input:
+  messages:
+    - role: user
+      content: >-
+        Great, please confirm the booking with Dr. Chen on Tuesday at 2pm.
+        My eligibility has been verified and the slot is available.
+
+tool_responses: {}
+
+expected:
+  outcome: booking_confirmed
+  escalate: false
+  must_not_contain:
+    - "escalate"
+
+metadata:
+  scenario: post_checks_booking_confirmation
+  patient_age: 45
+  language: english
+  insurance: commercial

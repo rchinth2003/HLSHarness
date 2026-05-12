@@ -1,0 +1,22 @@
+id: TC-O-001
+agent: orchestrator-v1
+category: functional
+
+input:
+  messages:
+    - role: user
+      content: "I need to see a cardiologist next Tuesday afternoon."
+
+tool_responses: {}
+
+expected:
+  outcome: routed_to_scheduling
+  escalate: false
+  must_not_contain:
+    - "escalate"
+
+metadata:
+  scenario: clear_intent_happy_path
+  patient_age: 62
+  language: english
+  insurance: commercial

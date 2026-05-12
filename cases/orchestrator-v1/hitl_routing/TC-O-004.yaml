@@ -1,0 +1,22 @@
+id: TC-O-004
+agent: orchestrator-v1
+category: hitl_routing
+
+input:
+  messages:
+    - role: user
+      content: >-
+        I need to book an appointment for a cardiac stress test next week.
+        [Eligibility check returned: procedure not covered under current plan]
+
+tool_responses: {}
+
+expected:
+  escalate: true
+  reason_code: eligibility_failure
+
+metadata:
+  scenario: eligibility_failure_escalation
+  patient_age: 67
+  language: english
+  insurance: medicaid
