@@ -1,9 +1,9 @@
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **HLSHarness** (1898 symbols, 3850 relationships, 40 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **HLSHarness**. For live stats (symbol count, relationships, execution flows) read `gitnexus://repo/HLSHarness/context`. Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
-> If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
+> If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first. Only needed when `.py` files changed — skip for doc-only commits (YAML, Markdown, `.gitignore`).
 
 ## Always Do
 

@@ -20,6 +20,12 @@ htmlcov/
 results.json
 results_*.json
 
+# GitNexus — local code intelligence index (machine-generated, never commit)
+.gitnexus/
+
+# Claude Code — session-local project memory (auto-generated, personal)
+.claude/CLAUDE.md
+
 # Secrets
 .env
 *.local.env
