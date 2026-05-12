@@ -66,6 +66,8 @@ def _patsch_results(
     orch_hitl: float = 1.0,
     sched_functional: float = 1.0,
     elig_functional: float = 1.0,
+    elig_regulatory: float = 1.0,
+    elig_hitl: float = 1.0,
     triage_urgency: float = 1.0,
     triage_safety: float = 1.0,
     triage_hitl: float = 1.0,
@@ -82,7 +84,12 @@ def _patsch_results(
         ),
         _make_eval_results(
             "eligibility-agent",
-            [("functional", elig_functional, 0.8), ("privacy", 1.0, 1.0)],
+            [
+                ("functional", elig_functional, 0.8),
+                ("privacy", 1.0, 1.0),
+                ("regulatory_compliance", elig_regulatory, 0.95),
+                ("hitl_routing", elig_hitl, 0.9),
+            ],
         ),
         _make_eval_results(
             "triage-agent",
@@ -129,7 +136,15 @@ def test_patsch_happy_path_expected_categories_in_rollup(tmp_path: Path) -> None
     with patch("hlsharness.solution_controller.EvalController", _fake_ctrl_seq(_patsch_results())):
         result = ctrl.run()
     cats = {c.category for c in result.solution_categories}
-    assert cats == {"functional", "hitl_routing", "equity", "privacy", "urgency_triage", "safety"}
+    assert cats == {
+        "functional",
+        "hitl_routing",
+        "equity",
+        "privacy",
+        "urgency_triage",
+        "safety",
+        "regulatory_compliance",
+    }
 
 
 def test_patsch_functional_rollup_aggregates_three_active_agents(tmp_path: Path) -> None:

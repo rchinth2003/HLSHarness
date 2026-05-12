@@ -1,0 +1,10 @@
+# Stub fixture: prior authorization denied — procedure not approved by insurer
+covered: true
+co_pay: 40.00
+prior_auth_required: true
+prior_auth_status: denied
+denial_reason: not_medically_necessary
+denial_reference: DN-2026-00712
+network_status: in_network
+plan_name: Aetna HMO
+appeal_deadline: "2026-06-12"

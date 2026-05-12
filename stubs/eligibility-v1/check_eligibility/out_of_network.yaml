@@ -1,0 +1,12 @@
+# Stub fixture: out of network — provider not in patient's plan network
+covered: false
+reason: out_of_network
+network_status: out_of_network
+plan_name: United PPO
+in_network_alternatives:
+  - provider_id: NPI-8812345
+    name: "Riverside Medical Group"
+    distance_miles: 4.2
+  - provider_id: NPI-9923456
+    name: "Lakeside Family Medicine"
+    distance_miles: 6.7

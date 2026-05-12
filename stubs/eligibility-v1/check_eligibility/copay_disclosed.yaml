@@ -1,0 +1,8 @@
+# Stub fixture: copay disclosed — covered with explicit copay returned, no prior auth
+covered: true
+co_pay: 55.00
+prior_auth_required: false
+network_status: in_network
+plan_name: Humana Choice PPO
+deductible_remaining: 0.00
+deductible_met: true

@@ -1,0 +1,9 @@
+# Stub fixture: high deductible — covered but patient owes full deductible amount
+covered: true
+co_pay: 0.00
+prior_auth_required: false
+network_status: in_network
+plan_name: Cigna HDHP
+deductible_remaining: 2400.00
+deductible_applies: true
+estimated_patient_cost: 2400.00

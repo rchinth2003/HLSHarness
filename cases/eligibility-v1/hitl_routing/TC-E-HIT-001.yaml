@@ -1,0 +1,24 @@
+id: TC-E-HIT-001
+agent: eligibility-v1
+category: hitl_routing
+
+input:
+  messages:
+    - role: user
+      content: >-
+        Please check eligibility for patient P-88421, procedure code 27447
+        (total knee replacement), payer Medicaid-TX-1102.
+
+tool_responses:
+  check_eligibility: not_covered
+
+expected:
+  escalate: true
+  reason_code: eligibility_failure
+  outcome: benefits_coordinator_escalation
+
+metadata:
+  scenario: coverage_denied_escalation
+  patient_age: 68
+  language: english
+  insurance: medicaid
