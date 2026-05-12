@@ -459,6 +459,22 @@ Each slice entry records:
 
 ---
 
+### PatSch Slice 3 — Triage Agent (Complete)
+
+| Field | Value |
+|-------|-------|
+| **PRD** | HLSHarness#129 |
+| **Issues** | HLSHarness#130–135 |
+| **PR** | HLSHarness#136 |
+| **Branch** | `slice-3-triage-v1` |
+| **Entry** | PatSch Slice 2 merged; CI green (696 tests, 1 skipped) |
+| **Deliverables** | `cases/triage-v1/agent.yaml` (tool-free, `gpt-5.4-pro`, categories: `urgency_triage`/`safety`/`hitl_routing`, all thresholds 0.90, locked jailbreak-resistant system prompt); 30 cases (14 urgency_triage TC-T-001–014, 10 safety TC-T-015–024, 6 hitl_routing TC-T-HIT-001–006); `tests/test_triage_v1_cases.py` (38 structural assertions); `test_e2e_solution.py` updated to 6-category rollup + 2 triage DAG gate tests |
+| **CI result** | ✅ Green |
+| **Tests** | 918 passed, 0 skipped |
+| **Exit** | triage-v1 fully covered; solution rollup now spans 6 categories (functional, hitl_routing, equity, privacy, urgency_triage, safety); previously skipped triage test resolved |
+
+---
+
 ## Dependency graph
 
 ```

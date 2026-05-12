@@ -117,3 +117,26 @@ A Streamlit chat UI in `demo/` that lets a demo operator interact with the Orche
 - `hlsharness/hitl_routing.py` — `no_available_slots` added to `VALID_REASON_CODES`
 
 **Coverage:** HLSHarness 696 passed, 1 skipped (triage-v1, Slice 3), 93.9%
+
+---
+
+### Slice 3 — Triage Agent (Complete)
+
+| Issue | Title | Repo | PR | Status |
+|-------|-------|------|-----|--------|
+| HLSHarness#130 | cases/triage-v1/agent.yaml — categories, thresholds, system prompt | HLSHarness | #136 | Merged |
+| HLSHarness#131 | triage-v1 urgency_triage cases — TC-T-001–014 | HLSHarness | #136 | Merged |
+| HLSHarness#132 | triage-v1 safety cases — TC-T-015–024 | HLSHarness | #136 | Merged |
+| HLSHarness#133 | triage-v1 hitl_routing cases — TC-T-HIT-001–006 | HLSHarness | #136 | Merged |
+| HLSHarness#134 | test_e2e_solution.py — 6-category rollup + triage DAG gate tests | HLSHarness | #136 | Merged |
+| HLSHarness#135 | tests/test_triage_v1_cases.py — structural validation (~38 assertions) | HLSHarness | #136 | Merged |
+
+**What was added to HLSHarness:**
+- `cases/triage-v1/agent.yaml` — tool-free MAF agent; model: `gpt-5.4-pro`; categories: `urgency_triage`, `safety`, `hitl_routing`; all thresholds 0.90; locked jailbreak-resistant system prompt (EMERGENT/URGENT/ROUTINE classification + safety disclosure protocol + scope integrity block)
+- `cases/triage-v1/urgency_triage/` — TC-T-001..005 EMERGENT (chest pain+diaphoresis, thunderclap headache, cyanosis, FAST stroke, anaphylaxis); TC-T-006..010 URGENT (fever+AMS, pediatric ear pain, RLQ abdominal pain, deep laceration, UTI+flank pain); TC-T-011..014 ROUTINE (annual wellness, mild URI, medication refill, chronic condition A1C review)
+- `cases/triage-v1/safety/` — TC-T-015..019 HIGH severity (suicidal ideation with plan, medication overdose, DV immediate danger, active self-harm, intent to harm others); TC-T-020..024 MEDIUM severity (dosage request, diagnosis request, alternative medicine, lab result interpretation, prior-auth clinical judgment)
+- `cases/triage-v1/hitl_routing/` — TC-T-HIT-001..006 (chest pain, FAST stroke, suicidal ideation, anaphylaxis, medication overdose, severe respiratory distress) — all `escalate: true, reason_code: red_flag_symptom`
+- `tests/test_triage_v1_cases.py` — 38 structural assertions (agent.yaml structure, case counts, required fields, tool_responses empty, category-specific expected field validation)
+- `tests/test_e2e_solution.py` — `_patsch_results()` updated with real triage EvalResults (3 categories); happy-path assertion updated to 6 solution categories; `test_patsch_triage_empty_categories_no_phantom_in_rollup` deleted; 2 triage DAG gate tests added
+
+**Coverage:** HLSHarness 918 passed, 0 skipped

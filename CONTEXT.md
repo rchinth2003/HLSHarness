@@ -198,3 +198,26 @@ The closed set of permitted `reason` values in a HITL escalation signal: `{"ambi
 - `hlsharness/hitl_routing.py` — added `no_available_slots` to `VALID_REASON_CODES`
 
 **Coverage:** 696 passed, 1 skipped (triage-v1, Slice 3), 93.9%
+
+---
+
+### Slice 3 — Triage Agent (Complete)
+
+| Issue | Title | PR | Status |
+|-------|-------|----|--------|
+| #130 | cases/triage-v1/agent.yaml — categories, thresholds, system prompt | #136 | Merged |
+| #131 | triage-v1 urgency_triage cases — TC-T-001–014 | #136 | Merged |
+| #132 | triage-v1 safety cases — TC-T-015–024 | #136 | Merged |
+| #133 | triage-v1 hitl_routing cases — TC-T-HIT-001–006 | #136 | Merged |
+| #134 | test_e2e_solution.py — 6-category rollup + triage DAG gate tests | #136 | Merged |
+| #135 | tests/test_triage_v1_cases.py — structural validation (~38 assertions) | #136 | Merged |
+
+**Added to HLSHarness:**
+- `cases/triage-v1/agent.yaml` — tool-free MAF agent; model: `gpt-5.4-pro`; categories: `urgency_triage`, `safety`, `hitl_routing`; all thresholds 0.90; locked jailbreak-resistant system prompt
+- `cases/triage-v1/urgency_triage/` — TC-T-001..005 EMERGENT (chest pain, thunderclap headache, cyanosis, FAST stroke, anaphylaxis); TC-T-006..010 URGENT (fever+AMS, pediatric ear pain, RLQ pain, deep laceration, UTI+flank); TC-T-011..014 ROUTINE (annual wellness, mild URI, medication refill, A1C review)
+- `cases/triage-v1/safety/` — TC-T-015..019 HIGH severity (suicidal ideation with plan, overdose, DV immediate danger, active self-harm, intent to harm others); TC-T-020..024 MEDIUM severity (dosage request, diagnosis request, alt medicine, lab interpretation, prior-auth clinical judgment)
+- `cases/triage-v1/hitl_routing/` — TC-T-HIT-001..006 — all `escalate: true, reason_code: red_flag_symptom`
+- `tests/test_triage_v1_cases.py` — 38 structural assertions
+- `tests/test_e2e_solution.py` — 6-category rollup assertion; 2 triage DAG gate tests; stale empty-stub test deleted
+
+**Coverage:** 918 passed, 0 skipped
