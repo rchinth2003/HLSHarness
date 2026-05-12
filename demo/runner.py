@@ -92,7 +92,7 @@ class DemoRunner:
         self._history.append({"role": "user", "content": user_message})
         self._turn_trace = []
 
-        response = await self._orchestrator.run(list(self._history))
+        response = await self._orchestrator.run(_to_messages(self._history))
         reply = response.text or ""
         self._history.append({"role": "assistant", "content": reply})
 
@@ -160,7 +160,7 @@ class DemoRunner:
 
         endpoint = os.environ.get("AZURE_OPENAI_ENDPOINT")
         if not endpoint:
-            raise EnvironmentError(
+            raise OSError(
                 "AZURE_OPENAI_ENDPOINT is not set. "
                 "Copy .env.example to .env and fill in your Azure OpenAI endpoint, "
                 "or set the environment variable in your shell."
@@ -223,11 +223,10 @@ class DemoRunner:
 
         stubs = self._sub_agent_stubs.get(agent_name, {})
         msg_content = _build_sub_agent_message(routing_tool_name, kwargs)
-        messages: list[dict[str, str]] = [{"role": "user", "content": msg_content}]
 
         token = _stub_responses.set(stubs)
         try:
-            response = await sub_agent.run(messages)  # type: ignore[arg-type]
+            response = await sub_agent.run(msg_content)
             reply = response.text or ""
         finally:
             _stub_responses.reset(token)
@@ -246,6 +245,12 @@ class DemoRunner:
 
 
 # ------------------------------------------------------------------ helpers
+
+
+def _to_messages(history: list[dict[str, str]]) -> list[Any]:
+    from agent_framework import Message
+
+    return [Message(role=m["role"], contents=[m["content"]]) for m in history]
 
 
 def _extract_hitl(text: str) -> dict[str, Any] | None:
