@@ -1,35 +1,24 @@
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **HLSHarness** (1886 symbols, 3840 relationships, 40 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **HLSHarness** (1897 symbols, 3851 relationships, 40 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
-> **After every merged PR:** run `gitnexus analyze` in the repo root to keep the index current. Takes ~10 seconds.
+> If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
 ## Always Do
 
-- **MUST run impact analysis before editing any symbol.** Run `gitnexus impact "<symbolName>" --direction upstream` via Bash and evaluate the result.
-- **MUST run `gitnexus detect-changes` before committing** to verify changes only affect expected symbols and execution flows.
-- When exploring unfamiliar code, use `gitnexus query "<concept>"` via Bash to find execution flows instead of grepping.
-- When you need full context on a specific symbol — callers, callees, execution flows — run `gitnexus context "<symbolName>"` via Bash.
-
-## Reporting Contract (agreed with user)
-
-Run impact analysis on every edit, but **only report to the user** when ANY of these is true:
-
-1. `risk` is MEDIUM, HIGH, or CRITICAL
-2. Symbol participates in 2+ execution flows (`processes_affected >= 2`)
-3. Symbol is in the high-impact set: `BaseScorer`, `EvalController`, `JudgeResult`, `CaseResult`, `SolutionController`
-
-> **Note:** Python dynamic dispatch (polymorphism) is a known blind spot — gitnexus cannot trace virtual method calls through subclasses. Always treat the above high-impact set as HIGH risk regardless of what the graph reports.
-
-For LOW-risk leaf symbols not in the above set: run silently, do not narrate.
+- **MUST run impact analysis before editing any symbol.** Before modifying a function, class, or method, run `gitnexus_impact({target: "symbolName", direction: "upstream"})` and report the blast radius (direct callers, affected processes, risk level) to the user.
+- **MUST run `gitnexus_detect_changes()` before committing** to verify your changes only affect expected symbols and execution flows.
+- **MUST warn the user** if impact analysis returns HIGH or CRITICAL risk before proceeding with edits.
+- When exploring unfamiliar code, use `gitnexus_query({query: "concept"})` to find execution flows instead of grepping. It returns process-grouped results ranked by relevance.
+- When you need full context on a specific symbol — callers, callees, which execution flows it participates in — use `gitnexus_context({name: "symbolName"})`.
 
 ## Never Do
 
-- NEVER edit a function, class, or method without first running `gitnexus impact` on it.
+- NEVER edit a function, class, or method without first running `gitnexus_impact` on it.
 - NEVER ignore HIGH or CRITICAL risk warnings from impact analysis.
-- NEVER rename symbols with find-and-replace — use `gitnexus rename` which understands the call graph.
-- NEVER commit changes without running `gitnexus detect-changes` to check affected scope.
+- NEVER rename symbols with find-and-replace — use `gitnexus_rename` which understands the call graph.
+- NEVER commit changes without running `gitnexus_detect_changes()` to check affected scope.
 
 ## Resources
 
