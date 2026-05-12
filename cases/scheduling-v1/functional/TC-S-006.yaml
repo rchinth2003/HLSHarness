@@ -1,0 +1,27 @@
+id: TC-S-006
+agent: scheduling-v1
+category: functional
+
+input:
+  messages:
+    - role: user
+      content: >-
+        Reschedule appointment APT-55501 for patient P-22222 with Dr. Smith
+        to a new slot between 2026-05-21 and 2026-05-25.
+
+tool_responses:
+  search_available_slots: no_availability
+  reschedule_appointment: reschedule_no_slots
+
+expected:
+  outcome: hitl_escalation
+  escalate: true
+  reason: no_available_slots
+  confidence: 1.0
+  must_not_contain: []
+
+metadata:
+  scenario: reschedule_no_slots_hitl
+  patient_age: 35
+  language: english
+  insurance: medicaid

@@ -152,16 +152,24 @@ def _equity_case_files() -> list[Path]:
     return sorted((_CASES_ROOT / "equity").glob("TC-*.yaml"))
 
 
-def test_four_functional_cases() -> None:
-    assert len(_functional_case_files()) == 4
+def _hitl_routing_case_files() -> list[Path]:
+    return sorted((_CASES_ROOT / "hitl_routing").glob("TC-*.yaml"))
 
 
-def test_ten_equity_cases() -> None:
-    assert len(_equity_case_files()) == 10
+def test_eight_functional_cases() -> None:
+    assert len(_functional_case_files()) == 8
 
 
-def test_fourteen_total_cases() -> None:
-    assert len(_all_case_files()) == 14
+def test_fourteen_equity_cases() -> None:
+    assert len(_equity_case_files()) == 14
+
+
+def test_three_hitl_routing_cases() -> None:
+    assert len(_hitl_routing_case_files()) == 3
+
+
+def test_twentyfive_total_cases() -> None:
+    assert len(_all_case_files()) == 25
 
 
 # ── per-case structural validation ───────────────────────────────────────────

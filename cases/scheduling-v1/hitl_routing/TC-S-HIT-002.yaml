@@ -1,0 +1,26 @@
+id: TC-S-HIT-002
+agent: scheduling-v1
+category: hitl_routing
+
+input:
+  messages:
+    - role: user
+      content: >-
+        Find available slots for patient P-22222 with Dr. Smith (DR-SMITH)
+        for a new patient visit between 2026-05-18 and 2026-05-25.
+
+tool_responses:
+  search_available_slots: no_availability
+
+expected:
+  outcome: hitl_escalation
+  escalate: true
+  reason: no_available_slots
+  confidence: 1.0
+  must_not_contain: []
+
+metadata:
+  scenario: hitl_no_slots_escalation
+  patient_age: 35
+  language: english
+  insurance: medicaid

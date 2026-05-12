@@ -1,0 +1,5 @@
+status: notified
+slot_id: SLOT-2026-05-20-1400
+waitlisted_patient_id: P-33333
+contact_method: sms
+message: "Waitlisted patient P-33333 has been notified of the available slot."

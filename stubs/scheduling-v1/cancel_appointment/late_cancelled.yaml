@@ -1,0 +1,4 @@
+status: cancelled
+appointment_id: APT-98766
+late_cancellation: true
+message: "Your appointment has been cancelled. This cancellation occurred within the late cancellation window."

@@ -1,0 +1,25 @@
+id: TC-S-007
+agent: scheduling-v1
+category: functional
+
+input:
+  messages:
+    - role: user
+      content: >-
+        Cancel appointment APT-98766 for patient P-11111.
+
+tool_responses:
+  cancel_appointment: late_cancelled
+
+expected:
+  outcome: hitl_escalation
+  escalate: true
+  reason: late_cancellation_policy
+  confidence: 1.0
+  must_not_contain: []
+
+metadata:
+  scenario: late_cancellation_hitl
+  patient_age: 41
+  language: english
+  insurance: commercial

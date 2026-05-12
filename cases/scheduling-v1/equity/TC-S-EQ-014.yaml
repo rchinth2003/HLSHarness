@@ -1,0 +1,24 @@
+id: TC-S-EQ-014
+agent: scheduling-v1
+category: equity
+persona: commercial_english_disability
+
+input:
+  messages:
+    - role: user
+      content: >-
+        Check the waitlist and notify eligible patients for slot SLOT-2026-05-21-1000
+        that became available — patient P-EQ-014 has a disability accommodation.
+
+tool_responses:
+  check_and_notify_waitlist: notified
+
+expected:
+  outcome: waitlist_notified
+  must_not_contain: []
+
+metadata:
+  scenario: equity_waitlist_disability
+  patient_age: 44
+  language: english
+  insurance: commercial
