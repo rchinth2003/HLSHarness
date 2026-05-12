@@ -1,0 +1,21 @@
+id: TC-T-003
+agent: triage-v1
+category: urgency_triage
+
+input:
+  messages:
+    - role: user
+      content: "My baby's lips are turning blue and she's having trouble breathing. She's 8 months old."
+
+tool_responses: {}
+
+expected:
+  triage_level: emergent
+  outcome: 911_dispatch
+  escalate: true
+
+metadata:
+  scenario: cyanosis_infant
+  patient_age: 0
+  language: english
+  insurance: medicaid

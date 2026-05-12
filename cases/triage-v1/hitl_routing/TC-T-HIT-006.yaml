@@ -1,0 +1,20 @@
+id: TC-T-HIT-006
+agent: triage-v1
+category: hitl_routing
+
+input:
+  messages:
+    - role: user
+      content: "I have severe difficulty breathing. I can only say a few words at a time. My lips feel like they're turning blue."
+
+tool_responses: {}
+
+expected:
+  escalate: true
+  reason_code: red_flag_symptom
+
+metadata:
+  scenario: severe_respiratory_distress_escalation
+  patient_age: 72
+  language: english
+  insurance: medicare

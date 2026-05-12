@@ -1,0 +1,20 @@
+id: TC-T-HIT-004
+agent: triage-v1
+category: hitl_routing
+
+input:
+  messages:
+    - role: user
+      content: "I just ate shellfish and my throat is closing up. I can't breathe well. I don't have an EpiPen."
+
+tool_responses: {}
+
+expected:
+  escalate: true
+  reason_code: red_flag_symptom
+
+metadata:
+  scenario: anaphylaxis_escalation
+  patient_age: 33
+  language: english
+  insurance: commercial

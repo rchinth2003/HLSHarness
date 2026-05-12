@@ -66,6 +66,9 @@ def _patsch_results(
     orch_hitl: float = 1.0,
     sched_functional: float = 1.0,
     elig_functional: float = 1.0,
+    triage_urgency: float = 1.0,
+    triage_safety: float = 1.0,
+    triage_hitl: float = 1.0,
 ) -> list[EvalResults]:
     """Scripted L1 results for all 4 PatSch agents in manifest order."""
     return [
@@ -81,13 +84,13 @@ def _patsch_results(
             "eligibility-agent",
             [("functional", elig_functional, 0.8), ("privacy", 1.0, 1.0)],
         ),
-        # triage-agent: Slice 3 — no cases yet
-        EvalResults(
-            agent="triage-agent",
-            run_at="2026-05-12T00:00:00+00:00",
-            cases=[],
-            categories=[],
-            passed=True,
+        _make_eval_results(
+            "triage-agent",
+            [
+                ("urgency_triage", triage_urgency, 0.9),
+                ("safety", triage_safety, 0.9),
+                ("hitl_routing", triage_hitl, 0.9),
+            ],
         ),
     ]
 
@@ -126,16 +129,7 @@ def test_patsch_happy_path_expected_categories_in_rollup(tmp_path: Path) -> None
     with patch("hlsharness.solution_controller.EvalController", _fake_ctrl_seq(_patsch_results())):
         result = ctrl.run()
     cats = {c.category for c in result.solution_categories}
-    assert cats == {"functional", "hitl_routing", "equity", "privacy"}
-
-
-def test_patsch_triage_empty_categories_no_phantom_in_rollup(tmp_path: Path) -> None:
-    manifest = SolutionManifest.load(_MANIFEST_PATH)
-    ctrl = SolutionController(manifest=manifest, judge=MagicMock(), cases_path=tmp_path)
-    with patch("hlsharness.solution_controller.EvalController", _fake_ctrl_seq(_patsch_results())):
-        result = ctrl.run()
-    # triage contributes nothing; exactly 4 categories from the 3 active agents
-    assert len(result.solution_categories) == 4
+    assert cats == {"functional", "hitl_routing", "equity", "privacy", "urgency_triage", "safety"}
 
 
 def test_patsch_functional_rollup_aggregates_three_active_agents(tmp_path: Path) -> None:
@@ -237,6 +231,37 @@ def test_patsch_dag_sub_agents_excluded_when_orchestrator_functional_fails(
     cats = {c.category for c in result.solution_categories}
     assert "equity" not in cats
     assert "privacy" not in cats
+
+
+def test_patsch_dag_triage_excluded_when_orchestrator_hitl_routing_fails(
+    tmp_path: Path,
+) -> None:
+    manifest = SolutionManifest.load(_MANIFEST_PATH)
+    ctrl = SolutionController(manifest=manifest, judge=MagicMock(), cases_path=tmp_path)
+    with patch(
+        "hlsharness.solution_controller.EvalController",
+        _fake_ctrl_seq(_patsch_results(orch_hitl=0.5)),
+    ):
+        result = ctrl.run()
+    cats = {c.category for c in result.solution_categories}
+    # urgency_triage and safety only come from triage-agent, which depends_on orchestrator
+    assert "urgency_triage" not in cats
+    assert "safety" not in cats
+
+
+def test_patsch_dag_triage_excluded_when_orchestrator_functional_fails(
+    tmp_path: Path,
+) -> None:
+    manifest = SolutionManifest.load(_MANIFEST_PATH)
+    ctrl = SolutionController(manifest=manifest, judge=MagicMock(), cases_path=tmp_path)
+    with patch(
+        "hlsharness.solution_controller.EvalController",
+        _fake_ctrl_seq(_patsch_results(orch_functional=0.5)),
+    ):
+        result = ctrl.run()
+    cats = {c.category for c in result.solution_categories}
+    assert "urgency_triage" not in cats
+    assert "safety" not in cats
 
 
 # ── case_dir path resolution ──────────────────────────────────────────────────
