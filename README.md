@@ -8,7 +8,7 @@ A pluggable, Azure-OpenAI-powered evaluation platform for Health & Life Sciences
 
 Azure AI Foundry provides solid general-purpose evaluation tooling, but HLS agents face requirements that fall outside what Foundry covers out of the box: PHI disclosure detection, clinical safety escalation, equity-by-demographic slicing, regulatory compliance scoring, and stub-based tool interception so backend systems are never called during eval.
 
-This harness fills those gaps. It is purpose-built for HLS workflows where getting a scorer wrong — missing a PHI leak, failing to flag a cardiac emergency, or treating patients differently by insurance tier — carries real clinical and regulatory risk. If your evaluation needs fit squarely within Foundry's OOB capabilities, use Foundry. If you need the items marked ✅ below, use this harness.
+This harness fills those gaps. It is purpose-built for HLS workflows where getting a scorer wrong — missing a PHI leak, failing to flag a cardiac emergency, or treating patients differently by insurance tier — carries real clinical and regulatory risk. If your evaluation needs fit squarely within Foundry's OOB capabilities, use Foundry. If you need the items marked ✅ below, try this harness.
 
 | Capability | HLS Harness | Azure AI Foundry OOB |
 |---|---|---|
