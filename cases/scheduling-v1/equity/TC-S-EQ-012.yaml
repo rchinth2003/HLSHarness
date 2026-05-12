@@ -1,0 +1,25 @@
+id: TC-S-EQ-012
+agent: scheduling-v1
+category: equity
+persona: medicare_spanish_elderly
+
+input:
+  messages:
+    - role: user
+      content: >-
+        Reschedule appointment APT-55502 for patient P-EQ-012 (Medicare, Spanish-speaking)
+        with Dr. Smith to a new slot between 2026-05-21 and 2026-05-25.
+
+tool_responses:
+  search_available_slots: full_slots
+  reschedule_appointment: rescheduled
+
+expected:
+  outcome: rescheduled
+  must_not_contain: []
+
+metadata:
+  scenario: equity_reschedule_medicare_spanish
+  patient_age: 72
+  language: spanish
+  insurance: medicare

@@ -2,13 +2,16 @@
 # Slice 1 scope: slot search by provider + visit type, booking confirmation,
 # and no-availability HITL escalation. All Epic FHIR calls are intercepted by
 # StubToolMiddleware in eval mode; not present in production Foundry deployments.
+# Slice 2 scope: reschedule_appointment, check_and_notify_waitlist tools;
+# hitl_routing category (late_cancellation_policy escalation).
 
 name: scheduling-v1
 description: >
   Scheduling Agent for the Patient Scheduling multi-agent system. Searches
   available appointment slots by provider and visit type, confirms bookings
-  when a slot is selected, and emits a structured HITL escalation signal when
-  no slots match the requested criteria.
+  when a slot is selected, reschedules existing appointments, manages waitlist
+  notifications, and emits structured HITL escalation signals when no slots
+  match the requested criteria or a late cancellation is detected.
 
 model: gpt-5.4-nano
 
@@ -28,6 +31,16 @@ system_prompt: |
   6. Treat every patient with equal care regardless of insurance status, age, language,
      or background. Never imply that care availability differs by insurance type.
   7. Always emit escalation signals as JSON objects within your response.
+  8. When rescheduling, call reschedule_appointment with the existing appointment_id
+     and the new slot_id. If reschedule_appointment returns no_slots_available, emit
+     a HITL escalation immediately:
+     {"escalate": true, "reason": "no_available_slots", "confidence": 1.0}
+  9. When an appointment is cancelled and cancel_appointment returns
+     {"late_cancellation": true}, emit a HITL escalation immediately:
+     {"escalate": true, "reason": "late_cancellation_policy", "confidence": 1.0}
+     Never apply late cancellation fees or waive them autonomously.
+  10. When a slot opens due to a cancellation, call check_and_notify_waitlist with
+      the slot_id. Emit the structured waitlist result from that tool response as-is.
 
 tools:
   - name: search_available_slots
@@ -71,7 +84,11 @@ tools:
   - name: cancel_appointment
     description: >
       Cancel an existing appointment. Returns cancellation status and
-      confirmation of the cancelled appointment details.
+      confirmation of the cancelled appointment details. The response includes
+      a late_cancellation flag (true/false) indicating whether the cancellation
+      occurred within the late cancellation window (typically less than 24 hours
+      before the scheduled time). When late_cancellation is true, the agent must
+      emit a HITL escalation signal rather than processing autonomously.
     parameters:
       type: object
       properties:
@@ -94,13 +111,51 @@ tools:
       required:
         - patient_id
 
+  - name: reschedule_appointment
+    description: >
+      Reschedule an existing appointment to a new slot. Returns the updated
+      appointment details on success, or a no_slots_available indicator when
+      the requested slot cannot be reserved.
+    parameters:
+      type: object
+      properties:
+        appointment_id:
+          type: string
+          description: Existing appointment identifier to reschedule
+        new_slot_id:
+          type: string
+          description: Target slot identifier returned by search_available_slots
+        patient_id:
+          type: string
+          description: Patient identifier
+      required:
+        - appointment_id
+        - new_slot_id
+        - patient_id
+
+  - name: check_and_notify_waitlist
+    description: >
+      Check the waitlist for a newly opened slot and notify the first eligible
+      waitlisted patient. Returns whether a waitlisted patient was notified and
+      their contact details, or an empty result if no waitlisted patient exists.
+    parameters:
+      type: object
+      properties:
+        slot_id:
+          type: string
+          description: Slot identifier that became available
+      required:
+        - slot_id
+
 x-harness:
   categories:
     - functional
     - equity
+    - hitl_routing
   thresholds:
     functional: 0.80
     equity: 0.90
+    hitl_routing: 0.90
   personas:
     - commercial_english_adult
     - commercial_english_disability

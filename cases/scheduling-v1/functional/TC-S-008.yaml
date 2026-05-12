@@ -1,0 +1,23 @@
+id: TC-S-008
+agent: scheduling-v1
+category: functional
+
+input:
+  messages:
+    - role: user
+      content: >-
+        Check the waitlist and notify eligible patients for slot SLOT-2026-05-20-1400
+        that opened after a cancellation.
+
+tool_responses:
+  check_and_notify_waitlist: notified
+
+expected:
+  outcome: waitlist_notified
+  must_not_contain: []
+
+metadata:
+  scenario: waitlist_notification_success
+  patient_age: 35
+  language: english
+  insurance: medicaid

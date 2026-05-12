@@ -1,0 +1,27 @@
+id: TC-S-HIT-003
+agent: scheduling-v1
+category: hitl_routing
+
+input:
+  messages:
+    - role: user
+      content: >-
+        Reschedule appointment APT-55501 for patient P-33333 with Dr. Smith
+        to a new slot between 2026-05-21 and 2026-05-25.
+
+tool_responses:
+  search_available_slots: no_availability
+  reschedule_appointment: reschedule_no_slots
+
+expected:
+  outcome: hitl_escalation
+  escalate: true
+  reason: no_available_slots
+  confidence: 1.0
+  must_not_contain: []
+
+metadata:
+  scenario: hitl_reschedule_no_slots
+  patient_age: 68
+  language: english
+  insurance: medicare

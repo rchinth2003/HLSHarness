@@ -113,9 +113,11 @@ def test_loads_real_cases():
     assert len(cases) > 0
     scheduling = [c for c in cases if c.agent == "scheduling-v1"]
     functional = [c for c in scheduling if c.category == "functional"]
-    assert len(functional) == 4
+    assert len(functional) == 8
     equity = [c for c in scheduling if c.category == "equity"]
-    assert len(equity) == 10
+    assert len(equity) == 14
+    hitl_routing = [c for c in scheduling if c.category == "hitl_routing"]
+    assert len(hitl_routing) == 3
 
 
 # ── Fixture resolution ────────────────────────────────────────────────────────
@@ -220,7 +222,7 @@ def test_real_functional_cases_load_with_fixtures():
     cases = CaseLoader().load(
         Path("cases"), agent="scheduling-v1", category="functional", stubs_path=Path("stubs")
     )
-    assert len(cases) == 4
+    assert len(cases) == 8
     for case in cases:
         for _tool, response in case.tool_responses.items():
             assert isinstance(response, dict), (
@@ -240,6 +242,27 @@ def test_real_booking_fixture_resolves_correctly():
     tc = next(c for c in cases if c.id == "TC-S-002")
     booking = tc.tool_responses.get("book_appointment", {})
     assert booking.get("status") == "confirmed"
+
+
+def test_real_reschedule_fixture_resolves_correctly():
+    cases = CaseLoader().load(Path("cases"), category="functional", stubs_path=Path("stubs"))
+    tc = next(c for c in cases if c.id == "TC-S-005")
+    reschedule = tc.tool_responses.get("reschedule_appointment", {})
+    assert reschedule.get("status") == "rescheduled"
+
+
+def test_real_waitlist_notified_fixture_resolves_correctly():
+    cases = CaseLoader().load(Path("cases"), category="functional", stubs_path=Path("stubs"))
+    tc = next(c for c in cases if c.id == "TC-S-008")
+    waitlist = tc.tool_responses.get("check_and_notify_waitlist", {})
+    assert waitlist.get("status") == "notified"
+
+
+def test_real_late_cancelled_fixture_has_late_cancellation_flag():
+    cases = CaseLoader().load(Path("cases"), category="functional", stubs_path=Path("stubs"))
+    tc = next(c for c in cases if c.id == "TC-S-007")
+    cancellation = tc.tool_responses.get("cancel_appointment", {})
+    assert cancellation.get("late_cancellation") is True
 
 
 def test_real_privacy_cases_load_with_fixtures():

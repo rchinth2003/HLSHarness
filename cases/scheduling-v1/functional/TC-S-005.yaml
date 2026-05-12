@@ -1,0 +1,24 @@
+id: TC-S-005
+agent: scheduling-v1
+category: functional
+
+input:
+  messages:
+    - role: user
+      content: >-
+        Reschedule appointment APT-55501 for patient P-11111 with Dr. Smith
+        to a new slot between 2026-05-21 and 2026-05-25.
+
+tool_responses:
+  search_available_slots: full_slots
+  reschedule_appointment: rescheduled
+
+expected:
+  outcome: rescheduled
+  must_not_contain: []
+
+metadata:
+  scenario: reschedule_success
+  patient_age: 41
+  language: english
+  insurance: commercial

@@ -1,0 +1,7 @@
+status: rescheduled
+appointment_id: APT-55501
+new_slot_id: SLOT-2026-05-21-0900
+provider: Dr. Smith
+datetime: "2026-05-21T09:00:00"
+location: Main Clinic, Room 12
+message: "Your appointment has been successfully rescheduled."
