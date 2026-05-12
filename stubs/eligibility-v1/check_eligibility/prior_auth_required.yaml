@@ -1,0 +1,8 @@
+# Stub fixture: covered but prior authorization required before booking
+covered: true
+co_pay: 50.00
+prior_auth_required: true
+network_status: in_network
+plan_name: Aetna HMO
+prior_auth_code: PA-REQUIRED
+deductible_remaining: 1200.00

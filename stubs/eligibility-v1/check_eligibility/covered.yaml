@@ -1,0 +1,7 @@
+# Stub fixture: eligibility covered — patient has active coverage, no prior auth required
+covered: true
+co_pay: 30.00
+prior_auth_required: false
+network_status: in_network
+plan_name: BlueCross PPO
+deductible_remaining: 500.00

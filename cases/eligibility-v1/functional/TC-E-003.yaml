@@ -1,0 +1,24 @@
+id: TC-E-003
+agent: eligibility-v1
+category: functional
+
+input:
+  messages:
+    - role: user
+      content: >-
+        Check eligibility for patient P-11111, procedure code 93306
+        (cardiac echocardiogram), payer Aetna-HMO-5500.
+
+tool_responses:
+  check_eligibility: prior_auth_required
+
+expected:
+  outcome: prior_auth_required
+  covered: true
+  must_not_contain: []
+
+metadata:
+  scenario: prior_auth_required
+  patient_age: 61
+  language: english
+  insurance: commercial
