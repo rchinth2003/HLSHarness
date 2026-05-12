@@ -224,25 +224,25 @@ The closed set of permitted `reason` values in a HITL escalation signal: `{"ambi
 
 ---
 
-### Slice 4 — Eligibility Agent Deep-Dive (Planning Complete)
+### Slice 4 — Eligibility Agent Deep-Dive (Complete)
 
 | Issue | Title | PR | Status |
 |-------|-------|----|--------|
-| #138 | cases/eligibility-v1/agent.yaml — regulatory_compliance + hitl_routing categories + Rules 5–9 + Scope integrity | — | Planned |
-| #139 | 5 new stubs: prior_auth_approved, out_of_network, high_deductible, copay_disclosed, prior_auth_denied | — | Planned |
-| #140 | regulatory_compliance cases — TC-E-005–010 (3 HIGH + 3 MEDIUM severity) | — | Planned |
-| #141 | hitl_routing cases — TC-E-HIT-001–004 (all escalate=true, reason_code=eligibility_failure) | — | Planned |
-| #142 | tests/test_eligibility_v1_cases.py — update counts + category validators | — | Planned |
-| #143 | tests/test_e2e_solution.py — 7-category rollup (add regulatory_compliance) | — | Planned |
+| #138 | cases/eligibility-v1/agent.yaml — regulatory_compliance + hitl_routing categories + Rules 5–9 + Scope integrity | #144 | Merged |
+| #139 | 5 new stubs: prior_auth_approved, out_of_network, high_deductible, copay_disclosed, prior_auth_denied | #144 | Merged |
+| #140 | regulatory_compliance cases — TC-E-005–010 (3 HIGH + 3 MEDIUM severity) | #144 | Merged |
+| #141 | hitl_routing cases — TC-E-HIT-001–004 (all escalate=true, reason_code=eligibility_failure) | #144 | Merged |
+| #142 | tests/test_eligibility_v1_cases.py — update counts + category validators | #144 | Merged |
+| #143 | tests/test_e2e_solution.py — 7-category rollup (add regulatory_compliance) | #144 | Merged |
 
 **PRD:** #137
 
-**Planned additions to HLSHarness:**
-- `cases/eligibility-v1/agent.yaml` — add `regulatory_compliance` (threshold 0.95) + `hitl_routing` (threshold 0.90); Rules 5–7 (escalation: covered=false, prior_auth_required, out_of_network); Rules 8–9 (co-pay disclosure, prior auth integrity); Scope integrity jailbreak-resistance block
+**Added to HLSHarness:**
+- `cases/eligibility-v1/agent.yaml` — added `regulatory_compliance` (threshold 0.95) + `hitl_routing` (threshold 0.90); Rules 5–7 (escalation: covered=false, prior_auth_required, out_of_network); Rules 8–9 (co-pay disclosure, prior auth integrity); Scope integrity jailbreak-resistance block
 - `stubs/eligibility-v1/check_eligibility/` — prior_auth_approved, out_of_network, high_deductible, copay_disclosed, prior_auth_denied
-- `cases/eligibility-v1/regulatory_compliance/` — TC-E-005..010 (6 cases: 3 HIGH + 3 MEDIUM severity)
+- `cases/eligibility-v1/regulatory_compliance/` — TC-E-005..010 (3 HIGH: PHI disclosure, prior auth waiver, scope overreach; 3 MEDIUM: copay omission, prior auth communication failure, out-of-network cost omission)
 - `cases/eligibility-v1/hitl_routing/` — TC-E-HIT-001..004 (all `escalate: true, reason_code: eligibility_failure`)
-- `tests/test_eligibility_v1_cases.py` — updated case counts (~17 total); new category/threshold assertions; regulatory_compliance + hitl_routing validators
-- `tests/test_e2e_solution.py` — eligibility-agent EvalResults adds regulatory_compliance + hitl_routing; happy-path category assertion 6→7
+- `tests/test_eligibility_v1_cases.py` — 14-case count assertions; 8-stub assertions; new category/threshold + regulatory_compliance + hitl_routing validators
+- `tests/test_e2e_solution.py` — eligibility-agent EvalResults adds regulatory_compliance + hitl_routing; happy-path category assertion 6→7 (adding regulatory_compliance)
 
-**Target Coverage:** ≥931 passed, 0 skipped
+**Coverage:** 1005 passed, 0 skipped, 93.9%
