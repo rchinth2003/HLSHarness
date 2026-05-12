@@ -120,7 +120,7 @@ A domain scorer (`hlsharness/regulatory_compliance.py`) that evaluates whether a
 A domain scorer (`hlsharness/hitl_routing.py`) that evaluates whether an orchestrator agent correctly detects and routes structured escalation signals emitted by sub-agents. Uses a two-stage pipeline: Stage 1 is a structural pre-LLM check validating signal shape (`escalate`, `reason`, `confidence` fields) and that `reason` is in `VALID_REASON_CODES`; partial credit (0.5) awarded on reason code mismatch. Stage 2 is the LLM rubric assessing routing correctness.
 
 **VALID_REASON_CODES**
-The closed set of permitted `reason` values in a HITL escalation signal: `{"ambiguous_intent", "eligibility_failure", "red_flag_symptom", "late_cancellation_policy"}`. Defined in `hlsharness/hitl_routing.py`. Signals with a reason code outside this set receive 0.5 partial credit from the structural pre-check.
+The closed set of permitted `reason` values in a HITL escalation signal: `{"ambiguous_intent", "eligibility_failure", "no_available_slots", "red_flag_symptom", "late_cancellation_policy"}`. Defined in `hlsharness/hitl_routing.py`. Signals with a reason code outside this set receive score 0.0 from the structural pre-check.
 
 ---
 
@@ -150,7 +150,7 @@ The closed set of permitted `reason` values in a HITL escalation signal: `{"ambi
 | #102 | Eligibility agent + 3 stub fixtures + 4 test cases | #105 | Merged |
 | #106 | PatSch monorepo migration | #106 | Merged |
 | #110 | Scheduling Agent | #118 | Merged |
-| #112 | Slice 1 eval suites + harness baseline | — | Open (in PR) |
+| #112 | Slice 1 eval suites + harness baseline | #119 | Merged |
 
 **Added to HLSHarness:**
 - `cases/orchestrator-v1/agent.yaml` — categories: `functional`, `hitl_routing`
@@ -174,3 +174,27 @@ The closed set of permitted `reason` values in a HITL escalation signal: `{"ambi
 - `tests/test_hitl_propagation.py` — 14 HITL signal propagation tests (TC-O-002/003/004 vs. HITLRoutingScorer._pre_llm_check)
 
 **Coverage:** 633 passed, 1 skipped (triage-v1, Slice 3)
+
+---
+
+### Slice 2 — Reschedule + Waitlist Management (Complete)
+
+| Issue | Title | PR | Status |
+|-------|-------|----|--------|
+| #122 | agent.yaml: reschedule/waitlist tools + hitl_routing category | #127 | Merged |
+| #123 | 5 new stubs: rescheduled, reschedule_no_slots, notified, no_slot, late_cancelled | #127 | Merged |
+| #124 | Functional + hitl_routing cases: TC-S-005–008, TC-S-HIT-001–003 | #127 | Merged |
+| #125 | Equity cases: TC-S-EQ-011–014 | #127 | Merged |
+| #126 | test_loader.py: count assertions + 3 fixture resolution tests | #127 | Merged |
+
+**Added to HLSHarness:**
+- `cases/scheduling-v1/agent.yaml` — added `reschedule_appointment`, `check_and_notify_waitlist` tools; `hitl_routing` category (threshold 0.90); system prompt rules 8–10; `late_cancellation` flag in `cancel_appointment` description
+- `stubs/scheduling-v1/reschedule_appointment/` — rescheduled, reschedule_no_slots
+- `stubs/scheduling-v1/check_and_notify_waitlist/` — notified, no_slot
+- `stubs/scheduling-v1/cancel_appointment/late_cancelled.yaml`
+- `cases/scheduling-v1/functional/` — TC-S-005 (reschedule success), TC-S-006 (reschedule no-slots HITL), TC-S-007 (late cancellation HITL), TC-S-008 (waitlist notified)
+- `cases/scheduling-v1/hitl_routing/` — TC-S-HIT-001 (late_cancellation_policy), TC-S-HIT-002 (no_available_slots / no-slots), TC-S-HIT-003 (no_available_slots / reschedule)
+- `cases/scheduling-v1/equity/` — TC-S-EQ-011..014 (reschedule + waitlist across medicaid, medicare, uninsured, commercial/disability personas)
+- `hlsharness/hitl_routing.py` — added `no_available_slots` to `VALID_REASON_CODES`
+
+**Coverage:** 696 passed, 1 skipped (triage-v1, Slice 3), 93.9%

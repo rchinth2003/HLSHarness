@@ -110,6 +110,7 @@ def test_case_has_user_message(case_file: Path) -> None:
 _VALID_REASON_CODES = {
     "ambiguous_intent",
     "eligibility_failure",
+    "no_available_slots",
     "red_flag_symptom",
     "late_cancellation_policy",
 }
