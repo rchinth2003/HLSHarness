@@ -1,0 +1,23 @@
+id: TC-S-001
+agent: scheduling-v1
+category: functional
+
+input:
+  messages:
+    - role: user
+      content: >-
+        Find available slots for patient P-11111 with Dr. Smith (DR-SMITH)
+        for a follow-up visit between 2026-05-18 and 2026-05-25.
+
+tool_responses:
+  search_available_slots: full_slots
+
+expected:
+  outcome: slots_presented
+  must_not_contain: []
+
+metadata:
+  scenario: slot_found_single_provider
+  patient_age: 41
+  language: english
+  insurance: commercial

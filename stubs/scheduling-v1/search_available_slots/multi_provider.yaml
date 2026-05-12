@@ -1,0 +1,22 @@
+# Stub fixture: multi-provider — slots available from two different providers
+slots:
+  - id: slot-020
+    date: "2026-06-02"
+    time: "9:00 AM"
+    provider: "Dr. Patel"
+    location: "North Clinic, Room 101"
+  - id: slot-021
+    date: "2026-06-03"
+    time: "11:00 AM"
+    provider: "Dr. Patel"
+    location: "North Clinic, Room 101"
+  - id: slot-030
+    date: "2026-06-02"
+    time: "2:00 PM"
+    provider: "Dr. Chen"
+    location: "East Clinic, Suite 5"
+  - id: slot-031
+    date: "2026-06-04"
+    time: "10:00 AM"
+    provider: "Dr. Chen"
+    location: "East Clinic, Suite 5"

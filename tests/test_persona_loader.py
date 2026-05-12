@@ -130,9 +130,9 @@ def test_resolve_raises_unknown_persona_error_for_bad_id(tmp_path: Path):
 # ── real personas/ directory ──────────────────────────────────────────────────
 
 
-def test_real_personas_directory_loads_nine_entries():
+def test_real_personas_directory_loads_ten_entries():
     personas = PersonaLoader().load_all(Path("personas"))
-    assert len(personas) == 9
+    assert len(personas) == 10
 
 
 def test_real_persona_uninsured_english_adult():

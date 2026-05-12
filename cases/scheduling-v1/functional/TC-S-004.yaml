@@ -1,0 +1,23 @@
+id: TC-S-004
+agent: scheduling-v1
+category: functional
+
+input:
+  messages:
+    - role: user
+      content: >-
+        Find available slots for patient P-33333 for a specialist consult
+        between 2026-06-02 and 2026-06-05. Check both Dr. Patel and Dr. Chen.
+
+tool_responses:
+  search_available_slots: multi_provider
+
+expected:
+  outcome: multi_provider_slots_presented
+  must_not_contain: []
+
+metadata:
+  scenario: multi_provider_slot_search
+  patient_age: 55
+  language: english
+  insurance: commercial
