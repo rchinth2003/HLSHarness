@@ -1,0 +1,21 @@
+id: TC-O-003
+agent: orchestrator-v1
+category: hitl_routing
+
+input:
+  messages:
+    - role: user
+      content: "I'd like to see my primary care doctor sometime next week or the week after, whenever works."
+
+tool_responses: {}
+
+expected:
+  escalate: true
+  reason_code: ambiguous_intent
+
+metadata:
+  scenario: ambiguous_date_hitl
+  patient_age: 38
+  language: english
+  insurance: medicare
+  confidence_gap: high
