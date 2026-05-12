@@ -27,7 +27,9 @@ from typing import Any
 from hlsharness.controller import DEFAULT_THRESHOLDS, EvalController
 from hlsharness.judge import Scorer
 from hlsharness.results import CategorySummary, EvalResults, SolutionResult
-from hlsharness.solution_manifest import SolutionManifest
+from hlsharness.solution_manifest import AgentEntry, SolutionManifest
+
+_ROUTING_CATEGORIES: frozenset[str] = frozenset({"functional", "hitl_routing"})
 
 
 class SolutionController:
@@ -117,19 +119,50 @@ class SolutionController:
 
     # ── internals ─────────────────────────────────────────────────────────────
 
+    def _routing_deps_satisfied(
+        self,
+        entry: AgentEntry,
+        results_by_agent: dict[str, EvalResults],
+    ) -> bool:
+        """Return True if every declared routing dependency passed its routing categories.
+
+        An agent with no ``depends_on`` entries is unconditionally eligible.
+        A dependency fails the gate if any of its functional or hitl_routing
+        category summaries did not meet threshold in the L1 result.
+        """
+        for dep_name in entry.depends_on:
+            dep = results_by_agent.get(dep_name)
+            if dep is None:
+                return False
+            for cat in dep.categories:
+                if cat.category in _ROUTING_CATEGORIES and not cat.met_threshold:
+                    return False
+        return True
+
     def _rollup(self, agent_results: list[EvalResults]) -> list[CategorySummary]:
         """Build solution-level category summaries from per-agent L1 results.
 
-        Pass rate is computed as total passed / total cases across all agents
-        that participated in a given category (weighted by case count, not a
-        simple average of rates).
+        Only agents whose routing dependencies passed (functional + hitl_routing
+        categories met threshold) are credited in the rollup.  Agents with no
+        ``depends_on`` entries are always included.
+
+        Pass rate is computed as total passed / total cases across all eligible
+        agents that participated in a given category (weighted by case count).
         """
         thresholds = {**DEFAULT_THRESHOLDS, **self._manifest.thresholds}
+        results_by_agent: dict[str, EvalResults] = {r.agent: r for r in agent_results}
 
-        # Gather all category names in declaration order (stable sort for output)
+        eligible: list[EvalResults] = []
+        for entry in self._manifest.agents:
+            result = results_by_agent.get(entry.name)
+            if result is None:
+                continue
+            if self._routing_deps_satisfied(entry, results_by_agent):
+                eligible.append(result)
+
         seen: set[str] = set()
         ordered_cats: list[str] = []
-        for result in agent_results:
+        for result in eligible:
             for cat_summary in result.categories:
                 if cat_summary.category not in seen:
                     seen.add(cat_summary.category)
@@ -137,7 +170,7 @@ class SolutionController:
 
         summaries: list[CategorySummary] = []
         for cat in sorted(ordered_cats):
-            matching = [c for r in agent_results for c in r.categories if c.category == cat]
+            matching = [c for r in eligible for c in r.categories if c.category == cat]
             if not matching:
                 continue
             total = sum(c.total for c in matching)

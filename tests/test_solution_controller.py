@@ -360,3 +360,106 @@ def test_solution_flag_sets_name() -> None:
 
     args = _build_parser().parse_args(["--solution", "prior-auth-v1"])
     assert args.solution == "prior-auth-v1"
+
+
+# ── DAG routing-gate tests ────────────────────────────────────────────────────
+
+
+def _make_manifest_with_deps(
+    agents: list[tuple[str, list[str]]],
+    thresholds: dict[str, float] | None = None,
+) -> SolutionManifest:
+    """Build a manifest where each tuple is (agent_name, depends_on)."""
+    entries = [AgentEntry(name=name, depends_on=deps) for name, deps in agents]
+    return SolutionManifest(solution="dag-test", agents=entries, thresholds=thresholds or {})
+
+
+def _fake_ctrl_seq(seq: list[EvalResults]) -> type:
+    idx = {"i": 0}
+
+    class _FakeCtrl:
+        def __init__(self, **_: object) -> None:
+            pass
+
+        def run(self, **_: object) -> EvalResults:
+            r = seq[idx["i"]]
+            idx["i"] += 1
+            return r
+
+    return _FakeCtrl
+
+
+def test_dag_dep_agent_included_when_orchestrator_passes(tmp_path: Path) -> None:
+    manifest = _make_manifest_with_deps([("orchestrator", []), ("booking-agent", ["orchestrator"])])
+    orch = _make_eval_results(
+        "orchestrator", [("functional", 1.0, 0.8), ("hitl_routing", 1.0, 0.9)]
+    )
+    booking = _make_eval_results("booking-agent", [("functional", 0.9, 0.8)])
+
+    ctrl = _make_controller(manifest, [], cases_path=tmp_path)
+    with patch("hlsharness.solution_controller.EvalController", _fake_ctrl_seq([orch, booking])):
+        result = ctrl.run()
+
+    # Both agents' functional cases should be aggregated: 10+10=20, 10+9=19
+    cat = next(c for c in result.solution_categories if c.category == "functional")
+    assert cat.total == 20
+    assert cat.passed_count == 19
+
+
+def test_dag_dep_agent_excluded_when_orchestrator_functional_fails(tmp_path: Path) -> None:
+    manifest = _make_manifest_with_deps([("orchestrator", []), ("booking-agent", ["orchestrator"])])
+    orch = _make_eval_results("orchestrator", [("functional", 0.4, 0.8)])  # fails (0.4 < 0.8)
+    booking = _make_eval_results("booking-agent", [("functional", 1.0, 0.8)])
+
+    ctrl = _make_controller(manifest, [], cases_path=tmp_path)
+    with patch("hlsharness.solution_controller.EvalController", _fake_ctrl_seq([orch, booking])):
+        result = ctrl.run()
+
+    # Only orchestrator's functional cases counted; booking-agent excluded
+    cat = next(c for c in result.solution_categories if c.category == "functional")
+    assert cat.total == 10  # only orchestrator
+    assert cat.passed_count == 4
+
+
+def test_dag_dep_agent_excluded_when_hitl_routing_fails(tmp_path: Path) -> None:
+    manifest = _make_manifest_with_deps([("orchestrator", []), ("booking-agent", ["orchestrator"])])
+    orch = _make_eval_results(
+        "orchestrator",
+        [("functional", 1.0, 0.8), ("hitl_routing", 0.5, 0.9)],  # hitl fails
+    )
+    booking = _make_eval_results("booking-agent", [("functional", 1.0, 0.8)])
+
+    ctrl = _make_controller(manifest, [], cases_path=tmp_path)
+    with patch("hlsharness.solution_controller.EvalController", _fake_ctrl_seq([orch, booking])):
+        result = ctrl.run()
+
+    # booking-agent excluded because orchestrator hitl_routing failed
+    cat = next(c for c in result.solution_categories if c.category == "functional")
+    assert cat.total == 10  # only orchestrator's functional
+    assert cat.passed_count == 10
+
+
+def test_dag_no_deps_always_included(tmp_path: Path) -> None:
+    manifest = _make_manifest_with_deps([("agent-a", []), ("agent-b", [])])
+    r_a = _make_eval_results("agent-a", [("functional", 0.8, 0.8)])
+    r_b = _make_eval_results("agent-b", [("functional", 0.9, 0.8)])
+
+    ctrl = _make_controller(manifest, [], cases_path=tmp_path)
+    with patch("hlsharness.solution_controller.EvalController", _fake_ctrl_seq([r_a, r_b])):
+        result = ctrl.run()
+
+    cat = next(c for c in result.solution_categories if c.category == "functional")
+    assert cat.total == 20  # both included
+
+
+def test_dag_missing_dep_in_results_excludes_agent(tmp_path: Path) -> None:
+    """If a declared dep agent has no L1 result, dependent agent is excluded."""
+    # Only one agent declared in manifest but it depends on "ghost" which isn't in manifest
+    manifest = _make_manifest_with_deps([("booking-agent", ["ghost-agent"])])
+    booking = _make_eval_results("booking-agent", [("functional", 1.0, 0.8)])
+
+    ctrl = _make_controller(manifest, [], cases_path=tmp_path)
+    with patch("hlsharness.solution_controller.EvalController", _fake_ctrl_seq([booking])):
+        result = ctrl.run()
+
+    assert result.solution_categories == []  # booking excluded; no categories to rollup

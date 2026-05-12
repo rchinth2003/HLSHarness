@@ -34,6 +34,7 @@ class AgentEntry:
 
     name: str
     stub: bool = False
+    depends_on: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -80,6 +81,7 @@ class SolutionManifest:
             AgentEntry(
                 name=str(a["name"]),
                 stub=bool(a.get("stub", False)),
+                depends_on=list(a.get("depends_on") or []),
             )
             for a in raw_agents
         ]

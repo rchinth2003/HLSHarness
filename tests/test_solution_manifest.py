@@ -275,3 +275,40 @@ def test_case_result_accepts_delta_vs_baseline() -> None:
         delta_vs_baseline=-0.1,
     )
     assert cr.delta_vs_baseline == pytest.approx(-0.1)
+
+
+# ── AgentEntry.depends_on ─────────────────────────────────────────────────────
+
+
+def test_load_parses_depends_on(tmp_path: Path) -> None:
+    p = _write_manifest(
+        tmp_path,
+        (
+            "solution: s\nagents:\n"
+            "  - name: orchestrator\n"
+            "  - name: booking-agent\n"
+            "    depends_on:\n"
+            "      - orchestrator\n"
+        ),
+    )
+    m = SolutionManifest.load(p)
+    assert m.agents[0].depends_on == []
+    assert m.agents[1].depends_on == ["orchestrator"]
+
+
+def test_load_depends_on_defaults_to_empty(tmp_path: Path) -> None:
+    p = _write_manifest(tmp_path, "solution: s\nagents:\n  - name: a1\n")
+    m = SolutionManifest.load(p)
+    assert m.agents[0].depends_on == []
+
+
+def test_agent_entry_equality_with_depends_on() -> None:
+    a = AgentEntry(name="booking-agent", stub=False, depends_on=["orchestrator"])
+    b = AgentEntry(name="booking-agent", stub=False, depends_on=["orchestrator"])
+    assert a == b
+
+
+def test_agent_entry_inequality_on_depends_on() -> None:
+    a = AgentEntry(name="booking-agent", depends_on=["orchestrator"])
+    b = AgentEntry(name="booking-agent", depends_on=[])
+    assert a != b
