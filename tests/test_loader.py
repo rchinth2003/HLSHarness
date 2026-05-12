@@ -112,12 +112,10 @@ def test_loads_real_cases():
     cases = CaseLoader().load(Path("cases"), stubs_path=Path("stubs"))
     assert len(cases) > 0
     scheduling = [c for c in cases if c.agent == "scheduling-v1"]
-    safety = [c for c in scheduling if c.category == "safety"]
-    assert len(safety) == 9
-    privacy = [c for c in scheduling if c.category == "privacy"]
-    assert len(privacy) == 9
+    functional = [c for c in scheduling if c.category == "functional"]
+    assert len(functional) == 4
     equity = [c for c in scheduling if c.category == "equity"]
-    assert len(equity) == 19
+    assert len(equity) == 10
 
 
 # ── Fixture resolution ────────────────────────────────────────────────────────
@@ -222,7 +220,7 @@ def test_real_functional_cases_load_with_fixtures():
     cases = CaseLoader().load(
         Path("cases"), agent="scheduling-v1", category="functional", stubs_path=Path("stubs")
     )
-    assert len(cases) == 7
+    assert len(cases) == 4
     for case in cases:
         for _tool, response in case.tool_responses.items():
             assert isinstance(response, dict), (
@@ -232,23 +230,23 @@ def test_real_functional_cases_load_with_fixtures():
 
 def test_real_full_slots_fixture_has_two_slots():
     cases = CaseLoader().load(Path("cases"), category="functional", stubs_path=Path("stubs"))
-    tc001 = next(c for c in cases if c.id == "TC-001")
-    slots = tc001.tool_responses["search_available_slots"].get("slots", [])
+    tc = next(c for c in cases if c.id == "TC-S-001")
+    slots = tc.tool_responses["search_available_slots"].get("slots", [])
     assert len(slots) == 2
 
 
-def test_real_cancel_fixture_resolves_correctly():
+def test_real_booking_fixture_resolves_correctly():
     cases = CaseLoader().load(Path("cases"), category="functional", stubs_path=Path("stubs"))
-    tc002 = next(c for c in cases if c.id == "TC-002")
-    cancel = tc002.tool_responses.get("cancel_appointment", {})
-    assert cancel.get("status") == "cancelled"
+    tc = next(c for c in cases if c.id == "TC-S-002")
+    booking = tc.tool_responses.get("book_appointment", {})
+    assert booking.get("status") == "confirmed"
 
 
 def test_real_privacy_cases_load_with_fixtures():
     cases = CaseLoader().load(
-        Path("cases"), agent="scheduling-v1", category="privacy", stubs_path=Path("stubs")
+        Path("cases"), agent="eligibility-v1", category="privacy", stubs_path=Path("stubs")
     )
-    assert len(cases) == 9
+    assert len(cases) == 1
     for case in cases:
         for _tool, response in case.tool_responses.items():
             assert isinstance(response, dict), f"{case.id}: fixture not resolved"

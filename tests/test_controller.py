@@ -66,26 +66,26 @@ def _make_controller(
 
 
 def test_run_returns_results_for_real_cases(tmp_path: Path):
-    shutil.copytree("cases/scheduling", tmp_path / "scheduling")
+    shutil.copytree("tests/fixtures/scheduling", tmp_path / "scheduling")
     results = _make_controller(tmp_path).run(categories=["functional"])
     assert len(results.cases) == 3
     assert results.cases[0].agent == "scheduling-v1"
 
 
 def test_passed_when_all_cases_above_threshold(tmp_path: Path):
-    shutil.copytree("cases/scheduling", tmp_path / "scheduling")
+    shutil.copytree("tests/fixtures/scheduling", tmp_path / "scheduling")
     results = _make_controller(tmp_path, score=0.9).run(categories=["functional"])
     assert results.passed is True
 
 
 def test_failed_when_cases_below_threshold(tmp_path: Path):
-    shutil.copytree("cases/scheduling", tmp_path / "scheduling")
+    shutil.copytree("tests/fixtures/scheduling", tmp_path / "scheduling")
     results = _make_controller(tmp_path, score=0.5).run(categories=["functional"])
     assert results.passed is False
 
 
 def test_category_summary_counts(tmp_path: Path):
-    shutil.copytree("cases/scheduling", tmp_path / "scheduling")
+    shutil.copytree("tests/fixtures/scheduling", tmp_path / "scheduling")
     results = _make_controller(tmp_path).run(categories=["functional"])
     summary = results.categories[0]
     assert summary.total == 3
@@ -94,25 +94,25 @@ def test_category_summary_counts(tmp_path: Path):
 
 
 def test_case_result_has_trajectory(tmp_path: Path):
-    shutil.copytree("cases/scheduling", tmp_path / "scheduling")
+    shutil.copytree("tests/fixtures/scheduling", tmp_path / "scheduling")
     results = _make_controller(tmp_path).run(categories=["functional"])
     assert isinstance(results.cases[0].trajectory, list)
 
 
 def test_case_result_has_latency(tmp_path: Path):
-    shutil.copytree("cases/scheduling", tmp_path / "scheduling")
+    shutil.copytree("tests/fixtures/scheduling", tmp_path / "scheduling")
     results = _make_controller(tmp_path).run(categories=["functional"])
     assert results.cases[0].latency_ms >= 0.0
 
 
 def test_no_cases_raises(tmp_path: Path):
-    shutil.copytree("cases/scheduling", tmp_path / "scheduling")
+    shutil.copytree("tests/fixtures/scheduling", tmp_path / "scheduling")
     with pytest.raises(ValueError, match="No cases found"):
         _make_controller(tmp_path).run(categories=["nonexistent"])
 
 
 def test_custom_threshold_applied(tmp_path: Path):
-    shutil.copytree("cases/scheduling", tmp_path / "scheduling")
+    shutil.copytree("tests/fixtures/scheduling", tmp_path / "scheduling")
     results = _make_controller(tmp_path, score=0.5, thresholds={"functional": 0.0}).run(
         categories=["functional"]
     )
@@ -120,7 +120,7 @@ def test_custom_threshold_applied(tmp_path: Path):
 
 
 def test_results_contain_metadata(tmp_path: Path):
-    shutil.copytree("cases/scheduling", tmp_path / "scheduling")
+    shutil.copytree("tests/fixtures/scheduling", tmp_path / "scheduling")
     results = _make_controller(tmp_path).run(categories=["functional"])
     tc003 = next(r for r in results.cases if r.case_id == "TC-003")
     assert tc003.metadata.get("language") == "spanish"
@@ -130,14 +130,14 @@ def test_results_contain_metadata(tmp_path: Path):
 
 
 def test_x_harness_thresholds_override_defaults(tmp_path: Path):
-    shutil.copytree("cases/scheduling", tmp_path / "scheduling")
+    shutil.copytree("tests/fixtures/scheduling", tmp_path / "scheduling")
     results = _make_controller(tmp_path, score=0.9).run(categories=["functional"])
     functional_summary = next(s for s in results.categories if s.category == "functional")
     assert functional_summary.threshold == pytest.approx(0.8)
 
 
 def test_explicit_thresholds_override_yaml(tmp_path: Path):
-    shutil.copytree("cases/scheduling", tmp_path / "scheduling")
+    shutil.copytree("tests/fixtures/scheduling", tmp_path / "scheduling")
     results = _make_controller(tmp_path, score=0.9, thresholds={"functional": 0.42}).run(
         categories=["functional"]
     )
@@ -146,7 +146,7 @@ def test_explicit_thresholds_override_yaml(tmp_path: Path):
 
 
 def test_no_explicit_thresholds_falls_back_to_yaml_then_defaults(tmp_path: Path):
-    shutil.copytree("cases/scheduling", tmp_path / "scheduling")
+    shutil.copytree("tests/fixtures/scheduling", tmp_path / "scheduling")
     results = _make_controller(tmp_path, score=0.9).run(categories=["functional"])
     functional_summary = next(s for s in results.categories if s.category == "functional")
     assert functional_summary.threshold == pytest.approx(DEFAULT_THRESHOLDS["functional"])
@@ -167,7 +167,7 @@ def test_yaml_loads_agent_name():
 
 
 def test_run_returns_results_full_pipeline(tmp_path: Path):
-    shutil.copytree("cases/scheduling", tmp_path / "scheduling")
+    shutil.copytree("tests/fixtures/scheduling", tmp_path / "scheduling")
     mock_agent = _make_fake_maf_agent("Your appointment is confirmed.")
     with patch("hlsharness.maf_agent.build_maf_agent", return_value=mock_agent):
         controller = EvalController(
@@ -184,7 +184,7 @@ def test_run_returns_results_full_pipeline(tmp_path: Path):
 
 
 def test_upfront_validation_rejects_unknown_tool(tmp_path: Path):
-    shutil.copytree("cases/scheduling", tmp_path / "scheduling")
+    shutil.copytree("tests/fixtures/scheduling", tmp_path / "scheduling")
     bad_case = {
         "id": "TC-BAD",
         "agent": "scheduling-v1",
