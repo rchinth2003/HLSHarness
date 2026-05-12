@@ -410,6 +410,55 @@ Each slice entry records:
 
 ---
 
+---
+
+## PatSch Slices — Patient Scheduling Portfolio
+
+### PatSch Slice 0 — Harness Foundation (Complete)
+
+| Field | Value |
+|-------|-------|
+| **PRD** | — |
+| **Issues** | HLSHarness#97–99 |
+| **PRs** | HLSHarness#97, #98, #99 |
+| **Entry** | HLSHarness Slice 15G merged |
+| **CI result** | ✅ Green |
+| **Exit** | `HITLRoutingScorer`, `SolutionController` DAG rollup, `solution.yaml`, ADRs 0001–0003 |
+
+---
+
+### PatSch Slice 1 — MVE: Slot Search + Intent Capture (Complete)
+
+| Field | Value |
+|-------|-------|
+| **PRD** | — |
+| **Issues** | HLSHarness#100–102, #106, #110, #112 |
+| **PRs** | HLSHarness#103–106, #118, #119 |
+| **Entry** | PatSch Slice 0 merged |
+| **CI result** | ✅ Green |
+| **Tests** | 633 passed, 1 skipped |
+| **Coverage** | 93.8% |
+| **Exit** | orchestrator-v1 + eligibility-v1 + scheduling-v1 agent definitions; 14 functional/equity/hitl_routing/privacy cases; SolutionController L2 wiring + DAG gate |
+
+---
+
+### PatSch Slice 2 — Reschedule + Waitlist Management (Complete)
+
+| Field | Value |
+|-------|-------|
+| **PRD** | HLSHarness#121 |
+| **Issues** | HLSHarness#122–126 |
+| **PR** | HLSHarness#127 |
+| **Branch** | `slice-2-reschedule-waitlist` |
+| **Entry** | PatSch Slice 1 merged; CI green (633 tests) |
+| **Deliverables** | `reschedule_appointment` + `check_and_notify_waitlist` tools in scheduling-v1; `hitl_routing` category (0.90); system prompt rules 8–10; `late_cancellation` flag; 5 stubs; 11 cases (TC-S-005–008, TC-S-HIT-001–003, TC-S-EQ-011–014); `no_available_slots` added to `VALID_REASON_CODES` |
+| **CI result** | ✅ Green |
+| **Tests** | 696 passed, 1 skipped |
+| **Coverage** | 93.9% |
+| **Exit** | Reschedule + waitlist flows fully covered; scheduling-v1 now has `functional`, `equity`, `hitl_routing` categories |
+
+---
+
 ## Dependency graph
 
 ```

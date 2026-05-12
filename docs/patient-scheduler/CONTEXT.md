@@ -93,3 +93,27 @@ A Streamlit chat UI in `demo/` that lets a demo operator interact with the Orche
 - `tests/test_hitl_propagation.py` — 14 HITL signal propagation tests
 
 **Coverage:** HLSHarness 633 passed, 1 skipped (triage-v1, Slice 3)
+
+---
+
+### Slice 2 — Reschedule + Waitlist Management (Complete)
+
+| Issue | Title | Repo | PR | Status |
+|-------|-------|------|-----|--------|
+| HLSHarness#122 | agent.yaml: reschedule/waitlist tools + hitl_routing | HLSHarness | #127 | Merged |
+| HLSHarness#123 | 5 new stubs | HLSHarness | #127 | Merged |
+| HLSHarness#124 | Functional + hitl_routing cases TC-S-005–008, TC-S-HIT-001–003 | HLSHarness | #127 | Merged |
+| HLSHarness#125 | Equity cases TC-S-EQ-011–014 | HLSHarness | #127 | Merged |
+| HLSHarness#126 | test_loader.py count assertions + 3 fixture resolution tests | HLSHarness | #127 | Merged |
+
+**What was added to HLSHarness:**
+- `cases/scheduling-v1/agent.yaml` — `reschedule_appointment`, `check_and_notify_waitlist` tools; `hitl_routing` category (threshold 0.90); system prompt rules 8–10; `late_cancellation` flag in `cancel_appointment` schema
+- `stubs/scheduling-v1/reschedule_appointment/` — rescheduled, reschedule_no_slots
+- `stubs/scheduling-v1/check_and_notify_waitlist/` — notified, no_slot
+- `stubs/scheduling-v1/cancel_appointment/late_cancelled.yaml`
+- `cases/scheduling-v1/functional/` — TC-S-005..008 (reschedule success, reschedule no-slots HITL, late cancellation HITL, waitlist notified)
+- `cases/scheduling-v1/hitl_routing/` — TC-S-HIT-001..003 (late_cancellation_policy + no_available_slots signals)
+- `cases/scheduling-v1/equity/` — TC-S-EQ-011..014 (reschedule + waitlist across medicaid, medicare, uninsured, commercial/disability personas)
+- `hlsharness/hitl_routing.py` — `no_available_slots` added to `VALID_REASON_CODES`
+
+**Coverage:** HLSHarness 696 passed, 1 skipped (triage-v1, Slice 3), 93.9%
