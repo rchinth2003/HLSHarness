@@ -35,6 +35,8 @@ class AgentEntry:
     name: str
     stub: bool = False
     depends_on: list[str] = field(default_factory=list)
+    # Explicit cases/ subdirectory name; defaults to `name` when empty.
+    case_dir: str = ""
 
 
 @dataclass
@@ -82,6 +84,7 @@ class SolutionManifest:
                 name=str(a["name"]),
                 stub=bool(a.get("stub", False)),
                 depends_on=list(a.get("depends_on") or []),
+                case_dir=str(a.get("case_dir", "")),
             )
             for a in raw_agents
         ]
@@ -122,7 +125,8 @@ class SolutionManifest:
         errors: list[str] = []
 
         for entry in self.agents:
-            agent_yaml = cases_path / entry.name / "agent.yaml"
+            resolved_dir = entry.case_dir if entry.case_dir else entry.name
+            agent_yaml = cases_path / resolved_dir / "agent.yaml"
             if not agent_yaml.exists():
                 errors.append(f"agent '{entry.name}': agent.yaml not found at {agent_yaml}")
 
