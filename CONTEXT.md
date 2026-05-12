@@ -141,7 +141,7 @@ The closed set of permitted `reason` values in a HITL escalation signal: `{"ambi
 - `config/solution.yaml` — `patient-scheduling-v1`: 4 agents, hub-and-spoke topology
 - `docs/adr/patsch/` — ADRs 0001–0003
 
-### Slice 1 — MVE: Slot Search + Intent Capture (In Progress)
+### Slice 1 — MVE: Slot Search + Intent Capture (Complete)
 
 | Issue | Title | PR | Status |
 |-------|-------|----|--------|
@@ -149,7 +149,7 @@ The closed set of permitted `reason` values in a HITL escalation signal: `{"ambi
 | #101 | Orchestrator agent definition + 5 test cases | #104 | Merged |
 | #102 | Eligibility agent + 3 stub fixtures + 4 test cases | #105 | Merged |
 | #106 | PatSch monorepo migration | #106 | Merged |
-| #110 | Scheduling Agent | — | Open |
+| #110 | Scheduling Agent | #118 | Merged |
 | #112 | Slice 1 eval suites + harness baseline | — | Open |
 
 **Added to HLSHarness:**
@@ -160,9 +160,17 @@ The closed set of permitted `reason` values in a HITL escalation signal: `{"ambi
 - `cases/eligibility-v1/functional/` — TC-E-001/002/003
 - `cases/eligibility-v1/privacy/` — TC-E-004
 - `stubs/eligibility-v1/check_eligibility/` — covered, not_covered, prior_auth_required
+- `cases/scheduling-v1/agent.yaml` — model: `gpt-5.4-nano`; tools: `search_available_slots`, `book_appointment`, `cancel_appointment`, `get_patient_record`; categories: `functional`, `equity`; 10 personas
+- `cases/scheduling-v1/functional/` — TC-S-001 (slot found), TC-S-002 (booking confirmed), TC-S-003 (no-slots HITL escalation), TC-S-004 (multi-provider)
+- `cases/scheduling-v1/equity/` — TC-S-EQ-001..010 (one per persona)
+- `stubs/scheduling-v1/search_available_slots/` — full_slots, no_availability, multi_provider
+- `personas/medicare_spanish_elderly.yaml` — 10th harness persona
 - `tests/test_orchestrator_v1_cases.py` — 32 structural assertions
 - `tests/test_eligibility_v1_cases.py` — 32 structural assertions
 - `tests/test_patsch_solution_manifest.py` — 9 manifest tests
 - `tests/test_slice1_agent_definitions.py` — 14 structural tests
+- `tests/test_scheduling_v1_cases.py` — 105 structural assertions
 
-**Coverage:** 502 passed, 1 skipped (triage-v1, Slice 3)
+**Coverage:** 607 passed, 1 skipped (triage-v1, Slice 3)
+
+**Remaining:** #112 (Slice 1 eval suites + harness baseline) — end-to-end solution eval, HITL propagation tests, RunStore baseline metrics
