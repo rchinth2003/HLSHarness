@@ -150,7 +150,7 @@ The closed set of permitted `reason` values in a HITL escalation signal: `{"ambi
 | #102 | Eligibility agent + 3 stub fixtures + 4 test cases | #105 | Merged |
 | #106 | PatSch monorepo migration | #106 | Merged |
 | #110 | Scheduling Agent | #118 | Merged |
-| #112 | Slice 1 eval suites + harness baseline | — | Open |
+| #112 | Slice 1 eval suites + harness baseline | — | Open (in PR) |
 
 **Added to HLSHarness:**
 - `cases/orchestrator-v1/agent.yaml` — categories: `functional`, `hitl_routing`
@@ -170,7 +170,7 @@ The closed set of permitted `reason` values in a HITL escalation signal: `{"ambi
 - `tests/test_patsch_solution_manifest.py` — 9 manifest tests
 - `tests/test_slice1_agent_definitions.py` — 14 structural tests
 - `tests/test_scheduling_v1_cases.py` — 105 structural assertions
+- `tests/test_e2e_solution.py` — 12 SolutionController wiring tests (real PatSch manifest, DAG gate, RunStore, triage empty-categories)
+- `tests/test_hitl_propagation.py` — 14 HITL signal propagation tests (TC-O-002/003/004 vs. HITLRoutingScorer._pre_llm_check)
 
-**Coverage:** 607 passed, 1 skipped (triage-v1, Slice 3)
-
-**Remaining:** #112 (Slice 1 eval suites + harness baseline) — end-to-end solution eval, HITL propagation tests, RunStore baseline metrics
+**Coverage:** 633 passed, 1 skipped (triage-v1, Slice 3)
