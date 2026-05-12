@@ -475,6 +475,23 @@ Each slice entry records:
 
 ---
 
+### PatSch Slice 5 — Demo App: live multi-agent Patient Scheduling chat UI (Complete)
+
+| Field | Value |
+|-------|-------|
+| **PRD** | HLSHarness#146 |
+| **Issues** | HLSHarness#147–152 |
+| **PR** | HLSHarness#153 |
+| **Branch** | `slice-5-demo-app` |
+| **Entry** | PatSch Slice 4 merged; CI green (1005 tests, 0 skipped) |
+| **Deliverables** | `demo/orchestrator-v1.yaml` (demo-only MAF config, 3 routing tools); `demo/scenarios.yaml` (6 pre-configured scenarios); `demo/runner.py` (`DemoRunner`, `TurnResult`, `TraceEvent`; lazy Azure init); `demo/app.py` (Streamlit chat UI — sidebar picker, left chat, right trace, amber HITL banner); `demo/README.md` (operator guide); `tests/test_demo_orchestrator_yaml.py` (16 assertions); `tests/test_demo_scenarios.py` (12 assertions); `tests/test_demo_runner_imports.py` (14 assertions) |
+| **CI result** | ✅ Green |
+| **Tests** | 1053 passed, 0 skipped |
+| **Coverage** | 93.9% |
+| **Exit** | Demo operator can run `streamlit run demo/app.py`, pick a scenario, and walk through the full multi-agent routing chain live (real Azure OpenAI + StubToolMiddleware fixtures); 6 pre-configured scenarios cover happy path, prior auth, no slots, red flag triage, and out of network |
+
+---
+
 ### PatSch Slice 4 — Eligibility Agent Deep-Dive (Complete)
 
 | Field | Value |

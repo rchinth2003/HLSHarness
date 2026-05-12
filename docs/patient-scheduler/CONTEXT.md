@@ -165,3 +165,30 @@ A Streamlit chat UI in `demo/` that lets a demo operator interact with the Orche
 - `tests/test_e2e_solution.py` — eligibility-agent EvalResults adds regulatory_compliance + hitl_routing; happy-path assertion 6→7 categories
 
 **Coverage:** HLSHarness 1005 passed, 0 skipped, 93.9%
+
+---
+
+### Slice 5 — Demo App (Complete)
+
+| Issue | Title | Repo | PR | Status |
+|-------|-------|------|-----|--------|
+| HLSHarness#147 | demo/orchestrator-v1.yaml — demo-specific MAF agent config with routing tools | HLSHarness | #153 | Merged |
+| HLSHarness#148 | demo/scenarios.yaml — 6 pre-configured demo scenarios | HLSHarness | #153 | Merged |
+| HLSHarness#149 | demo/runner.py — DemoRunner: multi-turn conversation loop + multi-agent routing | HLSHarness | #153 | Merged |
+| HLSHarness#150 | demo/app.py + demo/README.md — Streamlit chat UI + operator guide | HLSHarness | #153 | Merged |
+| HLSHarness#151 | tests/test_demo_scenarios.py + test_demo_orchestrator_yaml.py — structural YAML validation | HLSHarness | #153 | Merged |
+| HLSHarness#152 | tests/test_demo_runner_imports.py — DemoRunner importable without Azure credentials | HLSHarness | #153 | Merged |
+
+**PRD:** HLSHarness#146
+
+**What was added to HLSHarness:**
+- `demo/orchestrator-v1.yaml` — demo-only MAF agent config with 3 routing tools (`route_to_triage`, `route_to_eligibility`, `route_to_scheduling`); no `x-harness` block; `cases/orchestrator-v1/agent.yaml` (eval config) unchanged
+- `demo/scenarios.yaml` — 6 pre-configured scenarios each with `name`, `persona_id` (from `personas/`), and `stub_map` (sub-agent → fixture name); all stubs from existing fixture library
+- `demo/runner.py` — `DemoRunner` (lazy Azure init, importable without credentials); `TurnResult`; `TraceEvent`; routes to real sub-agent LLMs via `StubToolMiddleware`; `reset()` for new sessions
+- `demo/app.py` — Streamlit chat UI: sidebar scenario/persona picker, left chat panel, right trace panel with per-turn collapsible TraceEvent list, amber HITL banner
+- `demo/README.md` — operator guide: prerequisites, launch command, UI layout, per-scenario narratives for all 6 scenarios
+- `tests/test_demo_orchestrator_yaml.py` — 16 structural assertions (3 routing tools, schemas, required params, no x-harness)
+- `tests/test_demo_scenarios.py` — 12 structural assertions (6 scenarios, persona IDs exist on disk, all stub fixtures exist and are valid YAML)
+- `tests/test_demo_runner_imports.py` — 14 import-safety and unit tests (no Azure credentials needed, constructor safe, `_extract_hitl` + `_build_sub_agent_message` unit-tested)
+
+**Coverage:** HLSHarness 1053 passed, 0 skipped, 93.9%
