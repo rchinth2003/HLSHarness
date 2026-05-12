@@ -4,6 +4,27 @@ A pluggable, Azure-OpenAI-powered evaluation platform for Health & Life Sciences
 
 ---
 
+## Why this harness?
+
+Azure AI Foundry provides solid general-purpose evaluation tooling, but HLS agents face requirements that fall outside what Foundry covers out of the box: PHI disclosure detection, clinical safety escalation, equity-by-demographic slicing, regulatory compliance scoring, and stub-based tool interception so backend systems are never called during eval.
+
+This harness fills those gaps. It is purpose-built for HLS workflows where getting a scorer wrong — missing a PHI leak, failing to flag a cardiac emergency, or treating patients differently by insurance tier — carries real clinical and regulatory risk. If your evaluation needs fit squarely within Foundry's OOB capabilities, use Foundry. If you need the items marked ✅ below, use this harness.
+
+| Capability | HLS Harness | Azure AI Foundry OOB |
+|---|---|---|
+| **Tool stubbing** | ✅ `StubToolMiddleware` — intercepts tool calls at eval time; returns scripted YAML fixtures per test case; full trajectory recording | ⚠️ Not natively supported — Foundry evals run against live endpoints; fixture injection requires custom wrapper code |
+| **Domain scorers: Privacy, Safety, Equity** | ✅ Built-in `PrivacyGuard`, `SafetyGuard`, `EquityGuard` with HLS-specific rubrics, PHI regex pre-check, and severity tiers | ⚠️ Generic content-safety evaluators available; no HLS-specific PHI handling or equity-by-demographic slicing |
+| **Domain scorers: UrgencyTriage, RegulatoryCompliance** | ✅ Built-in `UrgencyTriageScorer` and `RegulatoryComplianceScorer` purpose-built for HLS workflows | ❌ Not available OOB — requires custom evaluator authoring |
+| **Architect-driven test generation** | ✅ `CaseGenerator` + `SpecInterpreter` — LLM generates YAML test cases from the MAF agent spec with Manifest Critique review | ⚠️ Dataset authoring is manual or via Prompt Flow; no spec-driven generation with critique step |
+| **Multi-agent L3 evaluation** | ✅ `SolutionController` — L1 per-agent eval + L2 solution rollup; configurable per-agent stub mode; cross-agent trajectory | ⚠️ Multi-agent orchestration tracing available; solution-level pass/fail rollup with per-category thresholds is not OOB |
+| **Persona-based equity analysis** | ✅ `Persona Library` — shared YAML personas with age, language, insurance, care context; equity slicing across all categories | ❌ Not available OOB |
+| **Run history + regression drift tracking** | ✅ `RunStore` (SQLite) — persists every run; baseline promotion (D1 auto / D2 human); CI exit-code 3 on regression | ⚠️ Foundry logs run results; structured baseline comparison with per-category delta and exit-code gate requires custom scripting |
+| **Hosted dashboard / trend visualization** | ✅ Streamlit dashboard — category scorecards, run history table, delta view (run A vs. B), solution rollup panel | ⚠️ Foundry Studio provides a results UI; per-run comparison table, case flip list, and solution rollup layout are not OOB |
+
+**Legend:** ✅ Full HLS Harness support · ⚠️ Partial or requires custom work · ❌ Not available
+
+---
+
 ## Contents
 
 - [Prerequisites](#prerequisites)
@@ -429,7 +450,7 @@ To introduce a new eval dimension (e.g. `operational`):
 
 2. **Register the category** in `hlsharness/loader.py`:
    ```python
-   VALID_CATEGORIES = {"functional", "safety", "privacy", "equity", "operational"}
+   VALID_CATEGORIES = {"functional", "safety", "privacy", "equity", "operational", "urgency_triage", "regulatory_compliance"}
    ```
 
 3. **Register the scorer** in `Judge._build_registry()` in `hlsharness/judge.py`:

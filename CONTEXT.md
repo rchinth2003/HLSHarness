@@ -16,7 +16,7 @@ The three-stage process applied to every agent response before a score is record
 A module that evaluates one dimension of agent behavior and returns a `JudgeResult` (score, passed, rationale). Each evaluation category has exactly one Scorer.
 
 **Category**
-An evaluation dimension: `functional`, `safety`, `privacy`, or `equity`. Each category has its own Scorer, YAML cases, pass-rate threshold, and scoring rubric.
+An evaluation dimension: `functional`, `safety`, `privacy`, `equity`, `urgency_triage`, or `regulatory_compliance`. Each category has its own Scorer, YAML cases, pass-rate threshold, and scoring rubric.
 
 **Category Author**
 An engineer adding a new evaluation dimension to the harness. Their job: subclass `BaseScorer`, implement the rubric hook, write YAML cases.
