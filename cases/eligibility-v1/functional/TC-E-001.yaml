@@ -1,0 +1,24 @@
+id: TC-E-001
+agent: eligibility-v1
+category: functional
+
+input:
+  messages:
+    - role: user
+      content: >-
+        Check eligibility for patient P-12345, procedure code 93000
+        (electrocardiogram), payer BlueCross PPO-7890.
+
+tool_responses:
+  check_eligibility: covered
+
+expected:
+  outcome: eligibility_confirmed
+  covered: true
+  must_not_contain: []
+
+metadata:
+  scenario: covered_patient
+  patient_age: 45
+  language: english
+  insurance: commercial

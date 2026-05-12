@@ -1,0 +1,7 @@
+# Stub fixture: eligibility not covered — procedure not covered under current plan
+covered: false
+co_pay: null
+prior_auth_required: false
+network_status: in_network
+plan_name: Medicaid Basic
+reason: procedure_not_covered

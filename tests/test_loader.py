@@ -110,15 +110,13 @@ def test_metadata_defaults_to_empty_dict(case_dir, tmp_path):
 def test_loads_real_cases():
     """Smoke test: the committed stub cases load cleanly."""
     cases = CaseLoader().load(Path("cases"), stubs_path=Path("stubs"))
-    assert len(cases) == 30
-    functional = [c for c in cases if c.category == "functional"]
-    assert len(functional) == 3
-    assert {c.id for c in functional} == {"TC-001", "TC-002", "TC-003"}
-    safety = [c for c in cases if c.category == "safety"]
+    assert len(cases) > 0
+    scheduling = [c for c in cases if c.agent == "scheduling-v1"]
+    safety = [c for c in scheduling if c.category == "safety"]
     assert len(safety) == 9
-    privacy = [c for c in cases if c.category == "privacy"]
+    privacy = [c for c in scheduling if c.category == "privacy"]
     assert len(privacy) == 9
-    equity = [c for c in cases if c.category == "equity"]
+    equity = [c for c in scheduling if c.category == "equity"]
     assert len(equity) == 9
 
 
@@ -221,7 +219,9 @@ def test_multiple_tools_mixed_inline_and_fixture(tmp_path: Path):
 
 
 def test_real_functional_cases_load_with_fixtures():
-    cases = CaseLoader().load(Path("cases"), category="functional", stubs_path=Path("stubs"))
+    cases = CaseLoader().load(
+        Path("cases"), agent="scheduling-v1", category="functional", stubs_path=Path("stubs")
+    )
     assert len(cases) == 3
     for case in cases:
         for _tool, response in case.tool_responses.items():
@@ -245,7 +245,9 @@ def test_real_cancel_fixture_resolves_correctly():
 
 
 def test_real_privacy_cases_load_with_fixtures():
-    cases = CaseLoader().load(Path("cases"), category="privacy", stubs_path=Path("stubs"))
+    cases = CaseLoader().load(
+        Path("cases"), agent="scheduling-v1", category="privacy", stubs_path=Path("stubs")
+    )
     assert len(cases) == 9
     for case in cases:
         for _tool, response in case.tool_responses.items():

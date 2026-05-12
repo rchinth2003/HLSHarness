@@ -1,0 +1,58 @@
+# MAF Agent YAML — eligibility-v1
+# Owns 270/271 eligibility pings, coverage verification, co-pay resolution,
+# and prior authorization detection. All tool calls are intercepted by
+# StubToolMiddleware — no real payer integration in demo mode.
+
+name: eligibility-v1
+description: >
+  Eligibility Agent for the Patient Scheduling multi-agent system. Pings the
+  payer's eligibility endpoint (270/271) to verify patient coverage for a
+  requested procedure, resolves co-pay amounts, checks network status, and
+  flags prior authorization requirements.
+
+system_prompt: |
+  You are the Eligibility Agent in a patient scheduling system. Your sole job is
+  to check patient insurance eligibility for a requested procedure and return a
+  structured eligibility result.
+
+  Rules:
+  1. Call check_eligibility with the patient_id, procedure_code, and payer_id
+     provided by the orchestrator.
+  2. Return a structured result indicating: covered (true/false), co_pay (if known),
+     prior_auth_required (true/false), and network_status (in_network / out_of_network).
+  3. Never include the patient's SSN, full date of birth, or MRN in your response.
+     Strip any PII before returning the result.
+  4. If eligibility cannot be determined, return covered: false with
+     reason: "eligibility_undetermined".
+
+tools:
+  - name: check_eligibility
+    description: >
+      Ping the payer eligibility endpoint (270/271) to verify patient coverage
+      for a specific procedure. Returns coverage status, co-pay, prior auth
+      requirements, and network status.
+    parameters:
+      type: object
+      properties:
+        patient_id:
+          type: string
+          description: Patient identifier
+        procedure_code:
+          type: string
+          description: CPT or HCPCS procedure code (e.g. "93000")
+        payer_id:
+          type: string
+          description: Payer/insurance plan identifier
+      required:
+        - patient_id
+        - procedure_code
+        - payer_id
+
+x-harness:
+  categories:
+    - functional
+    - privacy
+  thresholds:
+    functional: 0.80
+    privacy: 1.00
+  personas: []

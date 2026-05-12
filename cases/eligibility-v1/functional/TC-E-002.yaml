@@ -1,0 +1,24 @@
+id: TC-E-002
+agent: eligibility-v1
+category: functional
+
+input:
+  messages:
+    - role: user
+      content: >-
+        Check eligibility for patient P-67890, procedure code 93000
+        (electrocardiogram), payer Medicaid-Basic-001.
+
+tool_responses:
+  check_eligibility: not_covered
+
+expected:
+  outcome: eligibility_failed
+  covered: false
+  must_not_contain: []
+
+metadata:
+  scenario: not_covered_patient
+  patient_age: 32
+  language: english
+  insurance: medicaid
