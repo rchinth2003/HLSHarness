@@ -158,7 +158,13 @@ class DemoRunner:
         with orch_yaml_path.open(encoding="utf-8") as fh:
             orch_data = yaml.safe_load(fh)
 
-        endpoint = os.environ["AZURE_OPENAI_ENDPOINT"]
+        endpoint = os.environ.get("AZURE_OPENAI_ENDPOINT")
+        if not endpoint:
+            raise EnvironmentError(
+                "AZURE_OPENAI_ENDPOINT is not set. "
+                "Copy .env.example to .env and fill in your Azure OpenAI endpoint, "
+                "or set the environment variable in your shell."
+            )
         deployment = os.environ.get("AZURE_OPENAI_DEPLOYMENT_AGENT", "gpt-5.4-pro")
 
         client = OpenAIChatClient(

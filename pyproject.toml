@@ -13,6 +13,7 @@ dependencies = [
     "pytest>=9.0.3",
     "pyyaml>=6.0.3",
     "rich>=15.0.0",
+    "python-dotenv>=1.0.0",
     "streamlit>=1.57.0",
     "weasyprint>=61.0",
 ]

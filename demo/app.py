@@ -17,10 +17,13 @@ from pathlib import Path
 
 import streamlit as st
 import yaml
+from dotenv import load_dotenv
 
 _REPO_ROOT = Path(__file__).parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
+
+load_dotenv(_REPO_ROOT / ".env")  # no-op if .env doesn't exist
 
 from demo.runner import DemoRunner, TurnResult  # noqa: E402
 
