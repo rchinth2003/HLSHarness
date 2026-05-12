@@ -1,0 +1,24 @@
+id: TC-E-HIT-002
+agent: eligibility-v1
+category: hitl_routing
+
+input:
+  messages:
+    - role: user
+      content: >-
+        Check eligibility for patient P-55193, procedure code 70553
+        (brain MRI with contrast), payer Aetna HMO-9920.
+
+tool_responses:
+  check_eligibility: prior_auth_required
+
+expected:
+  escalate: true
+  reason_code: eligibility_failure
+  outcome: authorization_team_escalation
+
+metadata:
+  scenario: prior_auth_required_no_approval
+  patient_age: 52
+  language: english
+  insurance: commercial

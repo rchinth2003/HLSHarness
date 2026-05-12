@@ -1,0 +1,25 @@
+id: TC-E-HIT-004
+agent: eligibility-v1
+category: hitl_routing
+
+input:
+  messages:
+    - role: user
+      content: >-
+        Can you confirm whether prior authorization was approved for patient
+        P-71840, procedure code 43239 (upper GI endoscopy with biopsy),
+        payer Aetna HMO-9920?
+
+tool_responses:
+  check_eligibility: prior_auth_denied
+
+expected:
+  escalate: true
+  reason_code: eligibility_failure
+  outcome: benefits_coordinator_escalation
+
+metadata:
+  scenario: prior_auth_denied_escalation
+  patient_age: 57
+  language: english
+  insurance: commercial

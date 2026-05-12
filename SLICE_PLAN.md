@@ -475,6 +475,22 @@ Each slice entry records:
 
 ---
 
+### PatSch Slice 4 — Eligibility Agent Deep-Dive (Planning Complete)
+
+| Field | Value |
+|-------|-------|
+| **PRD** | HLSHarness#137 |
+| **Issues** | HLSHarness#138–143 |
+| **PR** | — (not started) |
+| **Branch** | `slice-4-eligibility-deep-dive` |
+| **Entry** | PatSch Slice 3 merged; CI green (918 tests, 0 skipped) |
+| **Deliverables** | `cases/eligibility-v1/agent.yaml` (add `regulatory_compliance` threshold 0.95 + `hitl_routing` threshold 0.90; Rules 5–9 + Scope integrity block); 5 new stubs (`prior_auth_approved`, `out_of_network`, `high_deductible`, `copay_disclosed`, `prior_auth_denied`); 10 new cases (TC-E-005–010 regulatory_compliance, TC-E-HIT-001–004 hitl_routing); `tests/test_eligibility_v1_cases.py` updated (case counts + category validators); `tests/test_e2e_solution.py` updated (7-category rollup) |
+| **CI result** | — |
+| **Tests** | 918 baseline; target ≥931 |
+| **Exit** | eligibility-v1 fully covered; solution rollup spans 7 categories (adding regulatory_compliance); PatSch demo scope (Slices 1–4) complete |
+
+---
+
 ## Dependency graph
 
 ```

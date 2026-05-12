@@ -1,0 +1,25 @@
+id: TC-E-HIT-003
+agent: eligibility-v1
+category: hitl_routing
+
+input:
+  messages:
+    - role: user
+      content: >-
+        Please verify eligibility for patient P-33076, procedure code 99214
+        (office visit, established patient), payer United PPO-3301, provider
+        NPI-7751234.
+
+tool_responses:
+  check_eligibility: out_of_network
+
+expected:
+  escalate: true
+  reason_code: eligibility_failure
+  outcome: benefits_coordinator_escalation
+
+metadata:
+  scenario: out_of_network_escalation
+  patient_age: 31
+  language: english
+  insurance: commercial

@@ -1,0 +1,9 @@
+# Stub fixture: prior authorization approved — covered, prior auth was pre-approved
+covered: true
+co_pay: 40.00
+prior_auth_required: true
+prior_auth_status: approved
+prior_auth_reference: PA-2026-00441
+network_status: in_network
+plan_name: Aetna HMO
+deductible_remaining: 200.00

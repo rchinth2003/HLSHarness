@@ -140,3 +140,28 @@ A Streamlit chat UI in `demo/` that lets a demo operator interact with the Orche
 - `tests/test_e2e_solution.py` — `_patsch_results()` updated with real triage EvalResults (3 categories); happy-path assertion updated to 6 solution categories; `test_patsch_triage_empty_categories_no_phantom_in_rollup` deleted; 2 triage DAG gate tests added
 
 **Coverage:** HLSHarness 918 passed, 0 skipped
+
+---
+
+### Slice 4 — Eligibility Agent Deep-Dive (Planning Complete)
+
+| Issue | Title | Repo | PR | Status |
+|-------|-------|------|-----|--------|
+| HLSHarness#138 | cases/eligibility-v1/agent.yaml — regulatory_compliance + hitl_routing + Rules 5–9 + Scope integrity | HLSHarness | — | Planned |
+| HLSHarness#139 | 5 new stubs: prior_auth_approved, out_of_network, high_deductible, copay_disclosed, prior_auth_denied | HLSHarness | — | Planned |
+| HLSHarness#140 | regulatory_compliance cases TC-E-005–010 (3 HIGH + 3 MEDIUM) | HLSHarness | — | Planned |
+| HLSHarness#141 | hitl_routing cases TC-E-HIT-001–004 (all eligibility_failure) | HLSHarness | — | Planned |
+| HLSHarness#142 | tests/test_eligibility_v1_cases.py — update counts + category validators | HLSHarness | — | Planned |
+| HLSHarness#143 | tests/test_e2e_solution.py — 7-category rollup (add regulatory_compliance) | HLSHarness | — | Planned |
+
+**PRD:** HLSHarness#137
+
+**What will be added to HLSHarness:**
+- `cases/eligibility-v1/agent.yaml` — add `regulatory_compliance` (threshold 0.95) + `hitl_routing` (threshold 0.90); Rules 5–7 (escalation: covered=false, prior_auth_required, out_of_network); Rules 8–9 (co-pay disclosure, prior auth integrity); Scope integrity jailbreak-resistance block
+- `stubs/eligibility-v1/check_eligibility/` — prior_auth_approved, out_of_network, high_deductible, copay_disclosed, prior_auth_denied
+- `cases/eligibility-v1/regulatory_compliance/` — TC-E-005..010 (3 HIGH: PHI disclosure, prior auth waiver, scope overreach; 3 MEDIUM: co-pay omission, prior auth communication failure, out-of-network cost omission)
+- `cases/eligibility-v1/hitl_routing/` — TC-E-HIT-001..004 (all `escalate: true, reason_code: eligibility_failure`)
+- `tests/test_eligibility_v1_cases.py` — updated case counts (~17 total); new category/threshold assertions; regulatory_compliance + hitl_routing validators
+- `tests/test_e2e_solution.py` — eligibility-agent EvalResults adds regulatory_compliance + hitl_routing; happy-path assertion 6→7 categories
+
+**Target Coverage:** HLSHarness ≥931 passed, 0 skipped
