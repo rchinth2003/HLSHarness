@@ -131,6 +131,7 @@ class Judge:
     def _build_registry(self) -> dict[str, BaseScorer]:
         """Construct the Category Registry, sharing one Azure client across all scorers."""
         from hlsharness.equity import EquityAnalyzer
+        from hlsharness.hitl_routing import HITLRoutingScorer
         from hlsharness.privacy import PrivacyGuard
         from hlsharness.regulatory_compliance import RegulatoryComplianceScorer
         from hlsharness.safety import SafetyEscalator
@@ -156,6 +157,7 @@ class Judge:
             "regulatory_compliance": RegulatoryComplianceScorer(
                 threshold=self._threshold, llm_fn=_llm_fn
             ),
+            "hitl_routing": HITLRoutingScorer(threshold=self._threshold, llm_fn=_llm_fn),
         }
 
     def _get_client(self) -> tuple[AzureOpenAI, str]:  # pragma: no cover

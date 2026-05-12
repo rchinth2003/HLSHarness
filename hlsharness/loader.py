@@ -20,6 +20,7 @@ VALID_CATEGORIES = {
     "operational",
     "urgency_triage",
     "regulatory_compliance",
+    "hitl_routing",
 }
 
 

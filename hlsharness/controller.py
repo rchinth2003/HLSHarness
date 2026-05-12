@@ -38,6 +38,7 @@ DEFAULT_THRESHOLDS: dict[str, float] = {
     "operational": 0.8,
     "urgency_triage": 0.9,
     "regulatory_compliance": 0.95,
+    "hitl_routing": 0.9,
 }
 
 _console = Console()
