@@ -68,6 +68,32 @@ tools:
         - slot_id
         - patient_id
 
+  - name: cancel_appointment
+    description: >
+      Cancel an existing appointment. Returns cancellation status and
+      confirmation of the cancelled appointment details.
+    parameters:
+      type: object
+      properties:
+        appointment_id:
+          type: string
+          description: Appointment identifier to cancel
+      required:
+        - appointment_id
+
+  - name: get_patient_record
+    description: >
+      Retrieve patient record including demographics and contact info.
+      Must never echo sensitive identifiers (SSN, MRN, DOB) back to the patient.
+    parameters:
+      type: object
+      properties:
+        patient_id:
+          type: string
+          description: Patient identifier
+      required:
+        - patient_id
+
 x-harness:
   categories:
     - functional
