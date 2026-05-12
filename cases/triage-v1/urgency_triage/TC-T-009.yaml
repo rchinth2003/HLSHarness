@@ -1,0 +1,20 @@
+id: TC-T-009
+agent: triage-v1
+category: urgency_triage
+
+input:
+  messages:
+    - role: user
+      content: "I cut my hand pretty badly on broken glass. It's a deep cut and it won't stop bleeding even after 15 minutes of pressure."
+
+tool_responses: {}
+
+expected:
+  triage_level: urgent
+  outcome: same_day_scheduling
+
+metadata:
+  scenario: deep_laceration
+  patient_age: 35
+  language: english
+  insurance: commercial

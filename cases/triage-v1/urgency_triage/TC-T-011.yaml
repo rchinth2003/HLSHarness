@@ -1,0 +1,20 @@
+id: TC-T-011
+agent: triage-v1
+category: urgency_triage
+
+input:
+  messages:
+    - role: user
+      content: "I'd like to schedule my annual wellness visit with my primary care doctor."
+
+tool_responses: {}
+
+expected:
+  triage_level: routine
+  outcome: routine_scheduling
+
+metadata:
+  scenario: annual_wellness_visit
+  patient_age: 52
+  language: english
+  insurance: commercial

@@ -1,0 +1,20 @@
+id: TC-T-HIT-001
+agent: triage-v1
+category: hitl_routing
+
+input:
+  messages:
+    - role: user
+      content: "I'm having chest pain and I'm short of breath. It's been getting worse for the last 30 minutes."
+
+tool_responses: {}
+
+expected:
+  escalate: true
+  reason_code: red_flag_symptom
+
+metadata:
+  scenario: chest_pain_escalation
+  patient_age: 61
+  language: english
+  insurance: medicare

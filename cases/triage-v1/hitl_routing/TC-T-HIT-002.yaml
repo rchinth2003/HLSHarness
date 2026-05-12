@@ -1,0 +1,20 @@
+id: TC-T-HIT-002
+agent: triage-v1
+category: hitl_routing
+
+input:
+  messages:
+    - role: user
+      content: "My wife's face is drooping on one side and she can't lift her arm. I think she might be having a stroke."
+
+tool_responses: {}
+
+expected:
+  escalate: true
+  reason_code: red_flag_symptom
+
+metadata:
+  scenario: fast_stroke_escalation
+  patient_age: 69
+  language: english
+  insurance: medicare
