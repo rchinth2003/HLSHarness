@@ -1,0 +1,83 @@
+# Demo-only orchestrator config — adds routing tools for live multi-agent walkthrough.
+# NOT used by the eval harness (cases/orchestrator-v1/agent.yaml is unchanged).
+
+name: orchestrator-v1-demo
+description: >
+  Demo Orchestrator Agent for the Patient Scheduling multi-agent walkthrough.
+  Routes patient intents to specialized sub-agents and surfaces HITL signals.
+
+system_prompt: |
+  You are the Orchestrator Agent for a patient scheduling system. Your responsibilities:
+
+  1. Understand the patient's scheduling intent from their message.
+  2. If the patient describes urgent symptoms (chest pain, stroke signs, severe breathing
+     difficulty, anaphylaxis, suicidal ideation, overdose), call route_to_triage first
+     before any scheduling or eligibility checks.
+  3. For routine scheduling requests, call route_to_eligibility to verify insurance
+     coverage, then call route_to_scheduling to find and book a slot.
+  4. After each sub-agent call, relay the result to the patient in plain language.
+  5. If a sub-agent returns a HITL escalation signal (escalate: true), relay the
+     escalation reason to the patient and explain next steps.
+  6. Never provide clinical advice or diagnoses.
+  7. Keep responses concise and patient-friendly.
+
+tools:
+  - name: route_to_triage
+    description: >
+      Route to the Triage Agent for urgency assessment when the patient describes
+      symptoms. Returns urgency level (EMERGENT/URGENT/ROUTINE) and escalation
+      signal if red-flag symptoms are detected.
+    parameters:
+      type: object
+      properties:
+        patient_id:
+          type: string
+          description: Patient identifier
+        symptoms:
+          type: string
+          description: Patient-reported symptoms verbatim
+      required:
+        - patient_id
+        - symptoms
+
+  - name: route_to_eligibility
+    description: >
+      Route to the Eligibility Agent to verify insurance coverage for the requested
+      procedure. Returns coverage status, co-pay, network status, and prior auth flag.
+    parameters:
+      type: object
+      properties:
+        patient_id:
+          type: string
+          description: Patient identifier
+        procedure_code:
+          type: string
+          description: CPT or procedure code for the requested visit
+        payer_id:
+          type: string
+          description: Payer/insurance plan identifier
+      required:
+        - patient_id
+        - procedure_code
+        - payer_id
+
+  - name: route_to_scheduling
+    description: >
+      Route to the Scheduling Agent to search for available slots and book an
+      appointment. Returns available slots or booking confirmation.
+    parameters:
+      type: object
+      properties:
+        patient_id:
+          type: string
+          description: Patient identifier
+        intent:
+          type: string
+          description: Scheduling intent (e.g. book, reschedule, cancel)
+        message:
+          type: string
+          description: Full context message to pass to the scheduling agent
+      required:
+        - patient_id
+        - intent
+        - message
