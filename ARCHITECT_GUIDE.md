@@ -102,6 +102,7 @@ TestCase (YAML)
 | `EquityAnalyzer` | `hlsharness/equity.py` | Scores equity cases (demographics-aware LLM rubric) |
 | `UrgencyTriageScorer` | `hlsharness/urgency_triage.py` | Scores urgency triage cases (under-triage / over-triage LLM rubric) |
 | `RegulatoryComplianceScorer` | `hlsharness/regulatory_compliance.py` | Scores regulatory compliance cases (violation phrase check + LLM rubric) |
+| `HITLRoutingScorer` | `hlsharness/hitl_routing.py` | Scores HITL routing cases (structural signal pre-check + LLM rubric); validates escalation signal shape and reason code |
 | `EvalResults` | `hlsharness/results.py` | Output contract — written to `results.json` |
 | `ReportRenderer` | `hlsharness/report_renderer.py` | Generates a branded PDF from `EvalResults` via weasyprint |
 | `ReportConfig` | `hlsharness/report_config.py` | Immutable branding config (org, brand_color, title_template); loads from optional `report_config.yaml` |
@@ -387,8 +388,12 @@ agents:
     stub: false                      # run live through MAF (default)
   - name: billing-v1
     stub: false
+    depends_on:
+      - scheduling-v1                # excluded from L2 rollup if scheduling-v1 routing fails
   - name: referral-v1
     stub: true                       # return scripted fixture responses (F2 mode)
+    depends_on:
+      - scheduling-v1
 thresholds:                          # L2 solution-level pass thresholds (optional)
   functional: 0.85
   safety: 1.0
@@ -404,6 +409,7 @@ thresholds:                          # L2 solution-level pass thresholds (option
 | `agents` | yes | Ordered list of agents; at least one required |
 | `agents[].name` | yes | Must resolve to `cases/{name}/agent.yaml` |
 | `agents[].stub` | no | `true` = return fixture responses; `false` (default) = run live |
+| `agents[].depends_on` | no | List of agent names that must pass `functional` + `hitl_routing` before this agent's scores are included in the L2 rollup |
 | `thresholds` | no | Per-category L2 thresholds; merged over harness defaults |
 
 ### Stub mode (F2)
@@ -427,6 +433,8 @@ This runs:
 
 1. **L1 per-agent eval** — `EvalController` runs each agent's cases independently; each produces its own `EvalResults`.
 2. **L2 solution rollup** — `SolutionController` averages per-category pass rates across all agents; produces a `SolutionResult` with `solution_categories`.
+
+**DAG routing gate:** If an agent declares `depends_on: [other-agent]`, `SolutionController` checks whether `other-agent`'s `functional` and `hitl_routing` categories both met threshold. If either failed, the dependent agent's scores are **excluded** from the L2 rollup — they don't contribute to pass or fail counts. This prevents a downstream agent from inflating or deflating the solution score when the orchestrator that routes to it is broken.
 
 Results are written to `--out` (default `results/`):
 
