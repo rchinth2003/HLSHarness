@@ -121,3 +121,48 @@ A domain scorer (`hlsharness/hitl_routing.py`) that evaluates whether an orchest
 
 **VALID_REASON_CODES**
 The closed set of permitted `reason` values in a HITL escalation signal: `{"ambiguous_intent", "eligibility_failure", "red_flag_symptom", "late_cancellation_policy"}`. Defined in `hlsharness/hitl_routing.py`. Signals with a reason code outside this set receive 0.5 partial credit from the structural pre-check.
+
+---
+
+## PatSch Implementation Status
+
+### Slice 0 — Harness Foundation (Complete)
+
+| Issue | Title | PR | Status |
+|-------|-------|----|--------|
+| #97 | HITL routing scorer | #97 | Merged |
+| #98 | Solution manifest + DAG | #98 | Merged |
+| #99 | Docs: hitl_routing + DAG rollup | #99 | Merged |
+
+**Added to HLSHarness:**
+- `hlsharness/hitl_routing.py` — `HITLRoutingScorer`; `VALID_REASON_CODES`
+- `hlsharness/solution_manifest.py` — `AgentEntry.depends_on`; `AgentEntry.case_dir`
+- `hlsharness/solution_controller.py` — DAG-aware `_rollup()`; `case_dir`-aware path resolution
+- `config/solution.yaml` — `patient-scheduling-v1`: 4 agents, hub-and-spoke topology
+- `docs/adr/patsch/` — ADRs 0001–0003
+
+### Slice 1 — MVE: Slot Search + Intent Capture (In Progress)
+
+| Issue | Title | PR | Status |
+|-------|-------|----|--------|
+| #100 | AgentEntry.case_dir + SolutionController path resolution | #103 | Merged |
+| #101 | Orchestrator agent definition + 5 test cases | #104 | Merged |
+| #102 | Eligibility agent + 3 stub fixtures + 4 test cases | #105 | Merged |
+| #106 | PatSch monorepo migration | #106 | Merged |
+| #110 | Scheduling Agent | — | Open |
+| #112 | Slice 1 eval suites + harness baseline | — | Open |
+
+**Added to HLSHarness:**
+- `cases/orchestrator-v1/agent.yaml` — categories: `functional`, `hitl_routing`
+- `cases/orchestrator-v1/functional/` — TC-O-001, TC-O-005
+- `cases/orchestrator-v1/hitl_routing/` — TC-O-002, TC-O-003, TC-O-004
+- `cases/eligibility-v1/agent.yaml` — tool: `check_eligibility`; categories: `functional`, `privacy`
+- `cases/eligibility-v1/functional/` — TC-E-001/002/003
+- `cases/eligibility-v1/privacy/` — TC-E-004
+- `stubs/eligibility-v1/check_eligibility/` — covered, not_covered, prior_auth_required
+- `tests/test_orchestrator_v1_cases.py` — 32 structural assertions
+- `tests/test_eligibility_v1_cases.py` — 32 structural assertions
+- `tests/test_patsch_solution_manifest.py` — 9 manifest tests
+- `tests/test_slice1_agent_definitions.py` — 14 structural tests
+
+**Coverage:** 502 passed, 1 skipped (triage-v1, Slice 3)
