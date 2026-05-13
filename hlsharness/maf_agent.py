@@ -55,6 +55,10 @@ class MafAgentYaml:
     x_harness:
         Raw ``x-harness:`` extension block dict. Keys: ``categories``,
         ``thresholds``, ``personas`` (placeholder for Slice 15C).
+    model:
+        Azure OpenAI deployment name for this agent. When set, overrides
+        ``AZURE_OPENAI_DEPLOYMENT_AGENT`` so safety-critical agents (triage,
+        orchestrator) can use a stronger model than the nano default.
     """
 
     name: str
@@ -62,9 +66,10 @@ class MafAgentYaml:
     system_prompt: str
     tools: list[MafToolDef]
     x_harness: dict[str, Any]
+    model: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        d: dict[str, Any] = {
             "name": self.name,
             "description": self.description,
             "system_prompt": self.system_prompt,
@@ -74,6 +79,9 @@ class MafAgentYaml:
             ],
             "x-harness": self.x_harness,
         }
+        if self.model is not None:
+            d["model"] = self.model
+        return d
 
     def write(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -115,6 +123,7 @@ def load_agent_yaml(path: Path) -> MafAgentYaml:
         system_prompt=data["system_prompt"],
         tools=tools,
         x_harness=x_harness,
+        model=data.get("model") or None,
     )
 
 
@@ -145,7 +154,9 @@ def build_maf_agent(
         env var.
     """
     resolved_endpoint = endpoint or os.environ["AZURE_OPENAI_ENDPOINT"]
-    resolved_deployment = deployment or os.environ["AZURE_OPENAI_DEPLOYMENT_AGENT"]
+    resolved_deployment = (
+        deployment or agent_yaml.model or os.environ["AZURE_OPENAI_DEPLOYMENT_AGENT"]
+    )
 
     client = OpenAIChatClient(
         model=resolved_deployment,

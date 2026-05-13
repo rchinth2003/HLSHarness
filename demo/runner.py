@@ -165,7 +165,9 @@ class DemoRunner:
                 "Copy .env.example to .env and fill in your Azure OpenAI endpoint, "
                 "or set the environment variable in your shell."
             )
-        deployment = os.environ.get("AZURE_OPENAI_DEPLOYMENT_AGENT", "gpt-5.4-pro")
+        deployment = orch_data.get("model") or os.environ.get("AZURE_OPENAI_DEPLOYMENT_AGENT")
+        if not deployment:
+            raise OSError("AZURE_OPENAI_DEPLOYMENT_AGENT is not set.")
 
         client = OpenAIChatClient(
             model=deployment,

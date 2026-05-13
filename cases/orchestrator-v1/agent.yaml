@@ -10,6 +10,8 @@ description: >
   bookings when all checks pass, and emits structured HITL escalation signals
   when a human-in-the-loop checkpoint is triggered.
 
+model: gpt-5.4-pro
+
 system_prompt: |
   You are the Orchestrator Agent for a patient scheduling system. Your responsibilities:
 

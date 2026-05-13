@@ -10,6 +10,8 @@ description: >
   requested procedure, resolves co-pay amounts, checks network status, and
   flags prior authorization requirements.
 
+model: gpt-5.4-nano
+
 system_prompt: |
   You are the Eligibility Agent in a patient scheduling system. Your sole job is
   to check patient insurance eligibility for a requested procedure and return a
