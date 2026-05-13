@@ -19,12 +19,12 @@ Everything runs inside a devcontainer. No Python, no uv, no package manager need
 
 You need **two model deployments** in your Azure OpenAI resource before starting. Create them in the [Azure AI Foundry portal](https://ai.azure.com/) under your resource → **Deployments → Deploy model**.
 
-| Deployment name | Model | Used for |
-|-----------------|-------|----------|
-| `gpt-5.4-pro` | GPT-4o (or equivalent) | All agents + eval judge |
-| `gpt-5.4-nano` | GPT-4o-mini (or equivalent) | Scheduling sub-agent (lighter, faster) |
+| Env var | Deployment name | Model | Used for |
+|---------|-----------------|-------|----------|
+| `AZURE_OPENAI_DEPLOYMENT_AGENT` | `gpt-5.4-nano` | GPT-4o-mini (or equivalent) | All sub-agents (scheduling, eligibility, triage, orchestrator) |
+| `AZURE_OPENAI_DEPLOYMENT_JUDGE` | `gpt-5.4-pro` | GPT-4o (or equivalent) | Eval rubric scorer |
 
-> The deployment **names** above are what you set in your `.env` — they must match exactly what you named them in the portal. The model you assign to each name is your choice; the names in the table are the defaults the harness expects.
+> The deployment **names** are what you set in your `.env` — they must match exactly what you named them in the portal.
 
 ---
 
@@ -44,8 +44,8 @@ Add these to your shell profile (`~/.bashrc`, `~/.zshrc`, or PowerShell `$PROFIL
 
 ```bash
 export AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
-export AZURE_OPENAI_DEPLOYMENT_AGENT=gpt-5.4-pro    # all agents use this
-export AZURE_OPENAI_DEPLOYMENT_JUDGE=gpt-5.4-pro    # eval rubric scorer uses this
+export AZURE_OPENAI_DEPLOYMENT_AGENT=gpt-5.4-nano   # all sub-agents
+export AZURE_OPENAI_DEPLOYMENT_JUDGE=gpt-5.4-pro    # eval rubric scorer
 ```
 
 Restart your terminal after saving.
