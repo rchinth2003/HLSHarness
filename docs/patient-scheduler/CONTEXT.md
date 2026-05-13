@@ -36,7 +36,25 @@ A scripted YAML tool response in the harness `stubs/` directory that intercepts 
 A harness evaluation run that spans all four agents and produces an L2 rollup score via `SolutionController`. Requires cross-agent dependency modeling: sub-agent scores are only meaningful if the Orchestrator routed correctly.
 
 ### Demo App
-A Streamlit chat UI in `demo/` that lets a demo operator interact with the Orchestrator Agent as a patient, using pre-loaded personas from the harness `personas/` library. Powered by `gpt-5.2-chat` for the conversational layer.
+A Streamlit chat UI in `demo/` that lets a demo operator interact with the Orchestrator Agent as a patient, using pre-loaded personas from the harness `personas/` library. The orchestrator uses `gpt-5.4-pro`; sub-agent tool calls are intercepted by `StubToolMiddleware` — no real EHR or payer calls are made.
+
+---
+
+## Model Selection
+
+Each agent declares its required Azure OpenAI deployment in `agent.yaml` via the `model:` field. The harness resolves the deployment in this priority order: explicit caller override → `agent.yaml model:` → `AZURE_OPENAI_DEPLOYMENT_AGENT` env var.
+
+| Agent | Deployment | Reason |
+|-------|-----------|--------|
+| `orchestrator-v1` | `gpt-5.4-pro` | Multi-step routing decisions, HITL signal detection across all intents — requires nuanced reasoning |
+| `triage-v1` | `gpt-5.4-pro` | Safety-critical red-flag classification (chest pain, suicidal ideation, anaphylaxis) — accuracy is non-negotiable |
+| `eligibility-v1` | `gpt-5.4-nano` | Structured tool-calling against 270/271 schema, deterministic rule application — nano is sufficient |
+| `scheduling-v1` | `gpt-5.4-nano` | Slot search and booking confirmation, schema-bound tool calls — nano is sufficient |
+| Eval judge / scorers | `gpt-5.4-pro` | LLM rubric scoring across functional, privacy, safety, regulatory, equity, and HITL categories |
+
+**Why two tiers?** Orchestrator and triage face open-ended adversarial inputs — ambiguous patient language, jailbreak attempts, edge-case symptom descriptions — where under-reasoning has direct patient safety consequences. Scheduling and eligibility are correct-by-structure: their outputs are validated by tool-call shape, not free-form reasoning, so the smaller model is equally reliable and meaningfully cheaper.
+
+The deployment names in `agent.yaml` (`gpt-5.4-nano`, `gpt-5.4-pro`) must match the names you create in the Azure AI Foundry portal exactly. Set `AZURE_OPENAI_DEPLOYMENT_AGENT=gpt-5.4-nano` and `AZURE_OPENAI_DEPLOYMENT_JUDGE=gpt-5.4-pro` in your `.env`.
 
 ---
 
