@@ -10,6 +10,7 @@
   "postCreateCommand": "pip install uv && uv sync --all-groups",
   "remoteEnv": {
     "AZURE_OPENAI_ENDPOINT": "${localEnv:AZURE_OPENAI_ENDPOINT}",
+    "AZURE_OPENAI_DEPLOYMENT_AGENT": "${localEnv:AZURE_OPENAI_DEPLOYMENT_AGENT}",
     "AZURE_OPENAI_DEPLOYMENT_JUDGE": "${localEnv:AZURE_OPENAI_DEPLOYMENT_JUDGE}"
   },
   "mounts": [

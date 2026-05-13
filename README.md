@@ -72,6 +72,7 @@ cd HLSHarness
 ```bash
 # ~/.bashrc or ~/.zshrc or PowerShell $PROFILE
 export AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
+export AZURE_OPENAI_DEPLOYMENT_AGENT=gpt-5.4-pro
 export AZURE_OPENAI_DEPLOYMENT_JUDGE=gpt-5.4-pro
 ```
 
@@ -107,8 +108,9 @@ uv sync --all-groups
 az login
 
 # 3. Point at your Azure OpenAI resource
-export AZURE_OPENAI_ENDPOINT=https://sow-gen-ai.openai.azure.com/
+export AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
 # Optional: defaults to gpt-5.4-pro
+export AZURE_OPENAI_DEPLOYMENT_AGENT=gpt-5.4-pro
 export AZURE_OPENAI_DEPLOYMENT_JUDGE=gpt-5.4-pro
 
 # 4. Run the full test suite (no Azure calls — all unit tests use fakes)
