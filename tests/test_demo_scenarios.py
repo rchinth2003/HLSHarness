@@ -20,7 +20,7 @@ _PERSONAS_DIR = Path(__file__).parent.parent / "personas"
 _STUBS_DIR = Path(__file__).parent.parent / "stubs"
 _SCENARIOS_PATH = _DEMO_DIR / "scenarios.yaml"
 
-EXPECTED_SCENARIO_COUNT = 6
+EXPECTED_SCENARIO_COUNT = 8
 EXPECTED_SCENARIO_NAMES = {
     "happy_path_booking",
     "prior_auth_approved",
@@ -28,6 +28,8 @@ EXPECTED_SCENARIO_NAMES = {
     "no_slots_hitl",
     "red_flag_triage_hitl",
     "out_of_network_hitl",
+    "spanish_scheduling_medicare",
+    "waitlist_status_check",
 }
 
 
@@ -115,3 +117,13 @@ def test_happy_path_has_eligibility_and_scheduling_stubs(scenarios):
     stub_map = sc["stub_map"]
     assert "eligibility-v1" in stub_map
     assert "scheduling-v1" in stub_map
+
+
+def test_spanish_scenario_uses_spanish_persona(scenarios):
+    spanish = next(
+        (s for s in scenarios if s.get("language") == "es"),
+        None,
+    )
+    assert spanish is not None, "no scenario with language: es"
+    assert spanish["persona_id"] == "medicare_spanish_elderly"
+

@@ -52,3 +52,15 @@ scenarios:
     stub_map:
       eligibility-v1:
         check_eligibility: out_of_network
+
+  - name: spanish_scheduling_medicare
+    description: "Spanish-language scheduling — Medicare elderly patient, end-to-end booking"
+    persona_id: medicare_spanish_elderly
+    language: es
+    stub_map:
+      eligibility-v1:
+        check_eligibility: covered
+      scheduling-v1:
+        search_available_slots: full_slots
+        book_appointment: confirmed
+

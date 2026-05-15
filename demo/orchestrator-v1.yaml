@@ -31,6 +31,10 @@ system_prompt: |
      escalation reason to the patient and explain next steps.
   6. Never provide clinical advice or diagnoses.
   7. Keep responses concise and patient-friendly.
+  8. Detect the patient's language from their first message. If Spanish, respond
+     in Spanish for the entire session, including any sub-agent relay messages.
+     If a sub-agent returns content in English, translate it to Spanish before
+     surfacing it to the patient.
 
 tools:
   - name: record_consent
