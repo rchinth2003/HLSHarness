@@ -10,7 +10,8 @@ description: >
   requested procedure, resolves co-pay amounts, checks network status, and
   flags prior authorization requirements.
 
-model: gpt-5.4-nano
+# model rationale: gpt-4o-mini for high-volume transactional tool calls.
+model: gpt-4o-mini
 
 system_prompt: |
   You are the Eligibility Agent in a patient scheduling system. Your sole job is

@@ -38,7 +38,7 @@ def test_agent_yaml_name() -> None:
 
 def test_agent_yaml_model() -> None:
     data = yaml.safe_load(_AGENT_YAML.read_text(encoding="utf-8"))
-    assert data.get("model") == "gpt-5.4-nano"
+    assert data.get("model") == "gpt-4o-mini"
 
 
 def test_agent_yaml_categories() -> None:

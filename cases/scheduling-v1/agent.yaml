@@ -13,7 +13,8 @@ description: >
   notifications, and emits structured HITL escalation signals when no slots
   match the requested criteria or a late cancellation is detected.
 
-model: gpt-5.4-nano
+# model rationale: gpt-4o-mini for high-volume transactional tool calls.
+model: gpt-4o-mini
 
 system_prompt: |
   You are the Scheduling Agent in a patient scheduling system. Your responsibilities:

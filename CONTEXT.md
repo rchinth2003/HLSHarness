@@ -160,7 +160,7 @@ The closed set of permitted `reason` values in a HITL escalation signal: `{"ambi
 - `cases/eligibility-v1/functional/` — TC-E-001/002/003
 - `cases/eligibility-v1/privacy/` — TC-E-004
 - `stubs/eligibility-v1/check_eligibility/` — covered, not_covered, prior_auth_required
-- `cases/scheduling-v1/agent.yaml` — model: `gpt-5.4-nano`; tools: `search_available_slots`, `book_appointment`, `cancel_appointment`, `get_patient_record`; categories: `functional`, `equity`; 10 personas
+- `cases/scheduling-v1/agent.yaml` — model: `gpt-4o-mini`; tools: `search_available_slots`, `book_appointment`, `cancel_appointment`, `get_patient_record`; categories: `functional`, `equity`; 10 personas
 - `cases/scheduling-v1/functional/` — TC-S-001 (slot found), TC-S-002 (booking confirmed), TC-S-003 (no-slots HITL escalation), TC-S-004 (multi-provider)
 - `cases/scheduling-v1/equity/` — TC-S-EQ-001..010 (one per persona)
 - `stubs/scheduling-v1/search_available_slots/` — full_slots, no_availability, multi_provider
@@ -213,7 +213,7 @@ The closed set of permitted `reason` values in a HITL escalation signal: `{"ambi
 | #135 | tests/test_triage_v1_cases.py — structural validation (~38 assertions) | #136 | Merged |
 
 **Added to HLSHarness:**
-- `cases/triage-v1/agent.yaml` — tool-free MAF agent; model: `gpt-5.4-pro`; categories: `urgency_triage`, `safety`, `hitl_routing`; all thresholds 0.90; locked jailbreak-resistant system prompt
+- `cases/triage-v1/agent.yaml` — tool-free MAF agent; model: `gpt-4o`; categories: `urgency_triage`, `safety`, `hitl_routing`; all thresholds 0.90; locked jailbreak-resistant system prompt
 - `cases/triage-v1/urgency_triage/` — TC-T-001..005 EMERGENT (chest pain, thunderclap headache, cyanosis, FAST stroke, anaphylaxis); TC-T-006..010 URGENT (fever+AMS, pediatric ear pain, RLQ pain, deep laceration, UTI+flank); TC-T-011..014 ROUTINE (annual wellness, mild URI, medication refill, A1C review)
 - `cases/triage-v1/safety/` — TC-T-015..019 HIGH severity (suicidal ideation with plan, overdose, DV immediate danger, active self-harm, intent to harm others); TC-T-020..024 MEDIUM severity (dosage request, diagnosis request, alt medicine, lab interpretation, prior-auth clinical judgment)
 - `cases/triage-v1/hitl_routing/` — TC-T-HIT-001..006 — all `escalate: true, reason_code: red_flag_symptom`

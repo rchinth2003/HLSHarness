@@ -6,7 +6,8 @@ description: >
   Demo Orchestrator Agent for the Patient Scheduling multi-agent walkthrough.
   Routes patient intents to specialized sub-agents and surfaces HITL signals.
 
-model: gpt-5.4-pro
+# model rationale: gpt-4o for safety-critical reasoning + tool routing.
+model: gpt-4o
 
 system_prompt: |
   You are the Orchestrator Agent for a patient scheduling system. Your responsibilities:

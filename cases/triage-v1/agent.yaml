@@ -9,9 +9,10 @@ description: >
   patient symptom descriptions, classifies urgency (EMERGENT / URGENT / ROUTINE),
   detects red-flag and safety-disclosure scenarios, and emits structured HITL
   escalation signals when a human-in-the-loop checkpoint is triggered.
-  Safety-critical — evaluated in an isolated eval suite with gpt-5.4-pro.
+  Safety-critical — evaluated in an isolated eval suite with gpt-4o.
 
-model: gpt-5.4-pro
+# model rationale: gpt-4o for safety-critical reasoning + tool routing.
+model: gpt-4o
 
 system_prompt: |
   You are a Patient Triage Assistant. Your role is to listen carefully,

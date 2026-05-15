@@ -113,3 +113,28 @@ def test_eligibility_agent_yaml_declares_check_eligibility_tool() -> None:
     tools = data.get("tools", [])
     tool_names = [t.get("name") for t in tools]
     assert "check_eligibility" in tool_names
+
+
+# ── model validation ──────────────────────────────────────────────────────────
+
+
+ALLOWED_MODELS = {"gpt-4o", "gpt-4o-mini", "o3"}
+AGENT_YAMLS = [
+    "cases/orchestrator-v1/agent.yaml",
+    "cases/triage-v1/agent.yaml",
+    "cases/scheduling-v1/agent.yaml",
+    "cases/eligibility-v1/agent.yaml",
+    "demo/orchestrator-v1.yaml",
+]
+
+
+@pytest.mark.parametrize("rel_path", AGENT_YAMLS)
+def test_agent_model_is_real_openai_model(rel_path: str) -> None:
+    import yaml
+
+    repo_root = Path(__file__).parent.parent
+    data = yaml.safe_load((repo_root / rel_path).read_text(encoding="utf-8"))
+    assert data["model"] in ALLOWED_MODELS, (
+        f"{rel_path} uses non-real model '{data['model']}'. "
+        f"Allowed: {sorted(ALLOWED_MODELS)}"
+    )
