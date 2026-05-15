@@ -157,6 +157,13 @@ with chat_col:
             messages.append({"role": "assistant", "content": result.orchestrator_reply})
             st.markdown(result.orchestrator_reply)
 
+            # Check if send_appointment_reminder was called in this turn
+            reminder_sent = any(
+                event.tool_name == "send_appointment_reminder" for event in result.trace_events
+            )
+            if reminder_sent:
+                st.markdown("✉️ *Reminder sent to patient via SMS*")
+
             # Check if triage-v1 was called in this turn
             triage_called = any(event.sub_agent == "triage-v1" for event in result.trace_events)
             # Keep in sync with cases/triage-v1/agent.yaml mandatory disclaimer section

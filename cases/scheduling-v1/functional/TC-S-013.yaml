@@ -1,0 +1,23 @@
+id: TC-S-013
+agent: scheduling-v1
+category: functional
+
+input:
+  messages:
+    - role: user
+      content: "Book me into the Tuesday 10 AM slot with Dr. Smith. I'm patient P-11111."
+
+tool_responses:
+  search_available_slots: full_slots
+  book_appointment: confirmed
+  send_appointment_reminder: reminder_sent
+
+expected:
+  outcome: success
+  must_not_contain: []
+
+metadata:
+  scenario: post_booking_reminder
+  patient_age: 35
+  language: english
+  insurance: commercial

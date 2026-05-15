@@ -157,7 +157,7 @@ def _hitl_routing_case_files() -> list[Path]:
 
 
 def test_ten_functional_cases() -> None:
-    assert len(_functional_case_files()) == 12
+    assert len(_functional_case_files()) == 13
 
 
 def test_fourteen_equity_cases() -> None:
@@ -169,7 +169,7 @@ def test_four_hitl_routing_cases() -> None:
 
 
 def test_twentyeight_total_cases() -> None:
-    assert len(_all_case_files()) == 32
+    assert len(_all_case_files()) == 33
 
 
 # ── per-case structural validation ───────────────────────────────────────────

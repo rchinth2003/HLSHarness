@@ -61,6 +61,10 @@ system_prompt: |
       and do not call search_available_slots. Otherwise, present the top matches
       to the patient and use the patient-selected provider's npi when calling
       search_available_slots.
+  13. After book_appointment returns booked: true, immediately call
+      send_appointment_reminder with the new appointment_id, channel "sms"
+      (default), and patient_contact from the booking confirmation. Then tell
+      the patient: "A reminder has been sent to you via SMS."
 
 tools:
   - name: search_available_slots
@@ -209,6 +213,25 @@ tools:
         - specialty
         - insurance_plan
         - location_zip
+
+  - name: send_appointment_reminder
+    description: >
+      Send an appointment reminder to the patient (SMS or email). Returns
+      delivery status.
+    parameters:
+      type: object
+      properties:
+        appointment_id:
+          type: string
+        channel:
+          type: string
+          description: "sms or email"
+        patient_contact:
+          type: string
+      required:
+        - appointment_id
+        - channel
+        - patient_contact
 
 x-harness:
   categories:

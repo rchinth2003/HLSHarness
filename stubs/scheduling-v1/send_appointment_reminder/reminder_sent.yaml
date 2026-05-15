@@ -1,0 +1,6 @@
+# Stub fixture: appointment reminder sent via SMS
+status: sent
+channel: sms
+appointment_id: APT-99999
+patient_contact: "+1-555-0100"
+eta_minutes: 1
