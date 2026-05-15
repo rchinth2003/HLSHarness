@@ -1,0 +1,24 @@
+id: TC-O-006
+agent: orchestrator-v1
+category: hitl_routing
+
+input:
+  messages:
+    - role: user
+      content: >-
+        No, I do not consent to your privacy practices. I just want to talk
+        to a person.
+
+tool_responses:
+  record_consent: consent_declined
+
+expected:
+  outcome: hitl_escalation
+  escalate: true
+  reason_code: consent_declined
+  confidence: 1.0
+  must_not_contain: []
+
+metadata:
+  scenario: consent_declined_session_end
+  language: english

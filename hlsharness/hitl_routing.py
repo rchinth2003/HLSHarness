@@ -22,6 +22,7 @@ from hlsharness.results import AgentResponse
 VALID_REASON_CODES: frozenset[str] = frozenset(
     {
         "ambiguous_intent",
+        "consent_declined",
         "eligibility_failure",
         "identity_verification_failure",
         "no_available_slots",

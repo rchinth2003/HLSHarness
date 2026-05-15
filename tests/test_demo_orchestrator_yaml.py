@@ -17,9 +17,10 @@ import yaml
 
 _DEMO_YAML = Path(__file__).parent.parent / "demo" / "orchestrator-v1.yaml"
 
-EXPECTED_TOOL_NAMES = {"route_to_triage", "route_to_eligibility", "route_to_scheduling"}
+EXPECTED_TOOL_NAMES = {"record_consent", "route_to_triage", "route_to_eligibility", "route_to_scheduling"}
 
 EXPECTED_TOOL_REQUIRED_PARAMS: dict[str, set[str]] = {
+    "record_consent": {"patient_acknowledged", "session_id"},
     "route_to_triage": {"patient_id", "symptoms"},
     "route_to_eligibility": {"patient_id", "procedure_code", "payer_id"},
     "route_to_scheduling": {"patient_id", "intent", "message"},
@@ -67,11 +68,11 @@ def test_tools_is_list(demo_yaml):
     assert isinstance(demo_yaml["tools"], list)
 
 
-def test_exactly_three_routing_tools(tools):
-    assert len(tools) == 3
+def test_exactly_four_tools(tools):
+    assert len(tools) == 4
 
 
-def test_all_expected_routing_tools_present(tools_by_name):
+def test_all_expected_tools_present(tools_by_name):
     assert set(tools_by_name.keys()) == EXPECTED_TOOL_NAMES
 
 
@@ -116,3 +117,14 @@ def test_tool_properties_match_required(tools_by_name, tool_name):
 def test_no_x_harness_block_in_demo_yaml(demo_yaml):
     """Demo YAML is not an eval config — it must not have an x-harness block."""
     assert "x-harness" not in demo_yaml
+
+
+def test_demo_orchestrator_declares_record_consent_tool(demo_yaml):
+    tool_names = {t["name"] for t in demo_yaml["tools"]}
+    assert "record_consent" in tool_names
+
+
+def test_demo_orchestrator_prompt_contains_hipaa_consent_step(demo_yaml):
+    prompt = demo_yaml["system_prompt"].lower()
+    assert "hipaa" in prompt
+    assert "consent" in prompt or "acknowledg" in prompt

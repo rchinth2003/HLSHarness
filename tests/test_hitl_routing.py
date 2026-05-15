@@ -227,3 +227,7 @@ def test_all_valid_reason_codes_pass_structural() -> None:
 def test_identity_verification_failure_is_a_valid_reason_code():
     from hlsharness.hitl_routing import VALID_REASON_CODES
     assert "identity_verification_failure" in VALID_REASON_CODES
+
+
+def test_consent_declined_is_a_valid_reason_code():
+    assert "consent_declined" in VALID_REASON_CODES

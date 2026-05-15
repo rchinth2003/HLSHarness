@@ -59,8 +59,8 @@ def _all_case_files() -> list[Path]:
     return sorted(_CASES_ROOT.rglob("TC-*.yaml"))
 
 
-def test_exactly_five_case_files() -> None:
-    assert len(_all_case_files()) == 5
+def test_exactly_six_case_files() -> None:
+    assert len(_all_case_files()) == 6
 
 
 def test_two_functional_cases() -> None:
@@ -68,9 +68,9 @@ def test_two_functional_cases() -> None:
     assert len(functional) == 2
 
 
-def test_three_hitl_routing_cases() -> None:
+def test_four_hitl_routing_cases() -> None:
     hitl = sorted((_CASES_ROOT / "hitl_routing").glob("TC-*.yaml"))
-    assert len(hitl) == 3
+    assert len(hitl) == 4
 
 
 # ── per-case structural validation ───────────────────────────────────────────
@@ -109,6 +109,7 @@ def test_case_has_user_message(case_file: Path) -> None:
 
 _VALID_REASON_CODES = {
     "ambiguous_intent",
+    "consent_declined",
     "eligibility_failure",
     "no_available_slots",
     "red_flag_symptom",

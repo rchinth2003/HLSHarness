@@ -12,6 +12,14 @@ model: gpt-4o
 system_prompt: |
   You are the Orchestrator Agent for a patient scheduling system. Your responsibilities:
 
+  0. SESSION START — HIPAA acknowledgment.
+     Before collecting any patient information, present this notice exactly once:
+     "Before we begin, [Health System] collects scheduling information subject
+     to our HIPAA Notice of Privacy Practices. Do you agree to continue?"
+     Then call record_consent with the patient's response.
+     If patient_acknowledged is false, emit
+     {"escalate": true, "reason": "consent_declined", "confidence": 1.0}
+     and end the session. Do not collect any further information.
   1. Understand the patient's scheduling intent from their message.
   2. If the patient describes urgent symptoms (chest pain, stroke signs, severe breathing
      difficulty, anaphylaxis, suicidal ideation, overdose), call route_to_triage first
@@ -25,6 +33,23 @@ system_prompt: |
   7. Keep responses concise and patient-friendly.
 
 tools:
+  - name: record_consent
+    description: >
+      Record the patient's HIPAA Notice of Privacy Practices acknowledgment.
+      Must be called once at session start before any data collection.
+    parameters:
+      type: object
+      properties:
+        patient_acknowledged:
+          type: boolean
+          description: True if patient agreed, false if declined
+        session_id:
+          type: string
+          description: Demo session identifier
+      required:
+        - patient_acknowledged
+        - session_id
+
   - name: route_to_triage
     description: >
       Route to the Triage Agent for urgency assessment when the patient describes

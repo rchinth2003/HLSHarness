@@ -95,6 +95,31 @@ runner: DemoRunner = st.session_state["runner"]
 messages: list[dict] = st.session_state["messages"]
 trace_log: list[TurnResult] = st.session_state["trace_log"]
 
+# ------------------------------------------------------------------ HIPAA consent banner
+
+if "consent_acknowledged" not in st.session_state:
+    st.session_state.consent_acknowledged = False
+
+if not st.session_state.consent_acknowledged:
+    with st.container(border=True):
+        st.markdown("### 🔒 HIPAA Notice of Privacy Practices")
+        st.markdown(
+            "Before we begin, **[Health System]** collects scheduling "
+            "information subject to our HIPAA Notice of Privacy Practices. "
+            "Your acknowledgment is required to continue."
+        )
+        col1, col2 = st.columns(2)
+        if col1.button("I acknowledge — Continue", type="primary"):
+            st.session_state.consent_acknowledged = True
+            st.rerun()
+        if col2.button("Decline"):
+            st.error(
+                "Session ended. Without acknowledgment we cannot collect "
+                "scheduling information. A human representative can assist you."
+            )
+            st.stop()
+    st.stop()
+
 # ------------------------------------------------------------------ layout
 
 chat_col, trace_col = st.columns([3, 2])
