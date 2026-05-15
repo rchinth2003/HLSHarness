@@ -6,6 +6,7 @@ scenarios:
       eligibility-v1:
         check_eligibility: covered
       scheduling-v1:
+        verify_patient_identity: verified
         search_available_slots: full_slots
         book_appointment: confirmed
 

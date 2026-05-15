@@ -23,6 +23,7 @@ VALID_REASON_CODES: frozenset[str] = frozenset(
     {
         "ambiguous_intent",
         "eligibility_failure",
+        "identity_verification_failure",
         "no_available_slots",
         "red_flag_symptom",
         "late_cancellation_policy",

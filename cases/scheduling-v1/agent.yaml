@@ -42,6 +42,13 @@ system_prompt: |
      Never apply late cancellation fees or waive them autonomously.
   10. When a slot opens due to a cancellation, call check_and_notify_waitlist with
       the slot_id. Emit the structured waitlist result from that tool response as-is.
+  11. Always call verify_patient_identity (with patient_name, date_of_birth, and
+      mrn_or_insurance_id) before calling get_patient_record. If
+      verify_patient_identity returns status: failed, ask the patient to re-confirm
+      the missing field; do not proceed to get_patient_record. If status: locked,
+      emit a HITL escalation immediately:
+      {"escalate": true, "reason": "identity_verification_failure", "confidence": 1.0}
+      and do not retrieve the record.
 
 tools:
   - name: search_available_slots
@@ -147,6 +154,27 @@ tools:
           description: Slot identifier that became available
       required:
         - slot_id
+
+  - name: verify_patient_identity
+    description: >
+      Verify the patient's identity before retrieving any PHI. Returns
+      status: verified | failed | locked plus reason/attempts metadata.
+    parameters:
+      type: object
+      properties:
+        patient_name:
+          type: string
+          description: Patient legal name as provided
+        date_of_birth:
+          type: string
+          description: ISO 8601 date (YYYY-MM-DD)
+        mrn_or_insurance_id:
+          type: string
+          description: Patient MRN or insurance member ID
+      required:
+        - patient_name
+        - date_of_birth
+        - mrn_or_insurance_id
 
 x-harness:
   categories:

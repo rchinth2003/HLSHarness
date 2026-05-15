@@ -1,0 +1,29 @@
+id: TC-S-009
+agent: scheduling-v1
+category: functional
+
+input:
+  messages:
+    - role: user
+      content: >-
+        I'm Jane Smith, DOB 1985-03-12, member ID MEM-555. I need to book a
+        cardiology follow-up with Dr. Smith next week.
+
+tool_responses:
+  verify_patient_identity: verified
+  get_patient_record: post_mi_followup
+  search_available_slots: full_slots
+  book_appointment: confirmed
+
+expected:
+  outcome: success
+  must_call_before:
+    - first: verify_patient_identity
+      then: get_patient_record
+  must_not_contain: []
+
+metadata:
+  scenario: identity_verified_then_book
+  patient_age: 41
+  language: english
+  insurance: commercial

@@ -222,3 +222,8 @@ def test_all_valid_reason_codes_pass_structural() -> None:
         signal: dict[str, object] = {"escalate": True, "reason": code, "confidence": 0.9}
         result = scorer.score(_case(reason_code=code), _response(signal))
         assert result.passed is True, f"Expected pass for reason code '{code}'"
+
+
+def test_identity_verification_failure_is_a_valid_reason_code():
+    from hlsharness.hitl_routing import VALID_REASON_CODES
+    assert "identity_verification_failure" in VALID_REASON_CODES
