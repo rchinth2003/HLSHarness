@@ -22,6 +22,7 @@ scenarios:
       eligibility-v1:
         check_eligibility: prior_auth_approved
       scheduling-v1:
+        match_providers: matched_multi
         search_available_slots: full_slots
         book_appointment: confirmed
 
@@ -39,6 +40,7 @@ scenarios:
       eligibility-v1:
         check_eligibility: covered
       scheduling-v1:
+        match_providers: no_match
         search_available_slots: no_availability
 
   - name: red_flag_triage_hitl
@@ -61,6 +63,7 @@ scenarios:
       eligibility-v1:
         check_eligibility: covered
       scheduling-v1:
+        match_providers: matched_multi
         search_available_slots: full_slots
         book_appointment: confirmed
 

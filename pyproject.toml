@@ -9,6 +9,7 @@ dependencies = [
     "agent-framework-openai>=1.3.0",
     "azure-identity>=1.25.3",
     "openai>=2.36.0",
+    "pandas>=2.0",
     "pypdf>=4.0.0",
     "pytest>=9.0.3",
     "pyyaml>=6.0.3",

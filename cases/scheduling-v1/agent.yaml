@@ -108,11 +108,9 @@ tools:
   - name: cancel_appointment
     description: >
       Cancel an existing appointment. Returns cancellation status and
-      confirmation of the cancelled appointment details. The response includes
-      a late_cancellation flag (true/false) indicating whether the cancellation
-      occurred within the late cancellation window (typically less than 24 hours
-      before the scheduled time). When late_cancellation is true, the agent must
-      emit a HITL escalation signal rather than processing autonomously.
+      confirmation. When late_cancellation: true, the response includes
+      either fee_waived: true (first occurrence, no escalation needed) or
+      fee_applied with an amount and policy_ref (escalation required).
     parameters:
       type: object
       properties:

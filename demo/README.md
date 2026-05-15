@@ -194,14 +194,6 @@ The app opens at `http://localhost:8501`.
 **Persona:** Medicaid, English-speaking adult  
 **Story:** Patient previously placed on a waitlist returns in a new session to check status. Demonstrates that the system handles cross-session async continuity, not only single-session linear flows.
 
-### waitlist_status_check — Async continuity for returning patients
-
-Patient previously placed on a waitlist returns in a new session to check
-status. Orchestrator routes to scheduling, which calls
-`check_and_notify_waitlist` and confirms a slot opened. Demonstrates that
-the system handles cross-session async continuity, not only single-session
-linear flows.
-
 | Turn | Type this | What to watch |
 |------|-----------|---------------|
 | 1 | `I was placed on a waitlist last week. Has a slot opened up?` | Orchestrator routes to scheduling. Trace shows `check_and_notify_waitlist` returning `notified` fixture indicating a slot became available. |

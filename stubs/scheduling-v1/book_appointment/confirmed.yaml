@@ -4,3 +4,5 @@ slot_id: slot-001
 date: "2026-05-18"
 time: "10:00 AM"
 provider: "Dr. Smith"
+patient_contact: "+1-555-0100"
+appointment_id: APT-99999
