@@ -64,3 +64,12 @@ scenarios:
         search_available_slots: full_slots
         book_appointment: confirmed
 
+  - name: waitlist_status_check
+    description: "Waitlist status check — returning Medicaid patient sees a slot opened"
+    persona_id: medicaid_english_adult
+    stub_map:
+      eligibility-v1:
+        check_eligibility: covered
+      scheduling-v1:
+        check_and_notify_waitlist: notified
+

@@ -167,6 +167,54 @@ The app opens at `http://localhost:8501`.
 - Click an expander header to collapse it and keep the panel readable as turns accumulate
 - If the orchestrator asks a clarifying question instead of routing immediately, answer it naturally and continue — this is expected LLM behavior
 
+---
+
+## Scenario 7 — Spanish-language end-to-end
+
+**Dropdown:** `spanish_scheduling_medicare`  
+**Persona:** Medicare, Spanish-speaking elderly patient  
+**Story:** Demonstrates language detection and bilingual orchestration. The orchestrator detects Spanish in the first message and maintains Spanish responses throughout the session.
+
+| Turn | Type this | What to watch |
+|------|-----------|---------------|
+| 1 | `Necesito programar una cita con mi médico.` | Orchestrator detects Spanish and responds in Spanish. Trace shows eligibility and scheduling calls. |
+| 2 | `¿Cuál es mi copago?` | Orchestrator recalls eligibility result from turn 1 and responds in Spanish about the co-pay. |
+| 3 | `Gracias, confirme la cita por favor.` | Booking confirmed in Spanish. No HITL banner — clean happy path. |
+
+**What to highlight:**
+- Language detection is automatic from the first user message — no explicit language parameter needed
+- All orchestrator responses maintain Spanish for the entire session
+- Sub-agents return English responses but orchestrator translates before surfacing to the patient
+
+---
+
+## Scenario 8 — Waitlist Status Check (Async Continuity)
+
+**Dropdown:** `waitlist_status_check`  
+**Persona:** Medicaid, English-speaking adult  
+**Story:** Patient previously placed on a waitlist returns in a new session to check status. Demonstrates that the system handles cross-session async continuity, not only single-session linear flows.
+
+### waitlist_status_check — Async continuity for returning patients
+
+Patient previously placed on a waitlist returns in a new session to check
+status. Orchestrator routes to scheduling, which calls
+`check_and_notify_waitlist` and confirms a slot opened. Demonstrates that
+the system handles cross-session async continuity, not only single-session
+linear flows.
+
+| Turn | Type this | What to watch |
+|------|-----------|---------------|
+| 1 | `I was placed on a waitlist last week. Has a slot opened up?` | Orchestrator routes to scheduling. Trace shows `check_and_notify_waitlist` returning `notified` fixture indicating a slot became available. |
+| 2 | `Great! What time and what doctor?` | Orchestrator provides slot details from the notification response. No HITL banner — patient can proceed to booking. |
+| 3 | `Please book that slot for me.` | Orchestrator confirms the booking. This demonstrates the system remembers waitlist state across sessions. |
+
+**What to highlight:**
+- This is the only scenario that simulates a returning patient checking on async state
+- The `check_and_notify_waitlist` tool represents integration with a waitlist management system
+- Trace panel shows the notification result with slot details — this is where the cross-session state surfaces
+
+---
+
 ## Live Demo Recovery Playbook
 
 When the agent produces unexpected output during a live presentation, use these
