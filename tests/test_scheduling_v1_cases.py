@@ -156,7 +156,7 @@ def _hitl_routing_case_files() -> list[Path]:
     return sorted((_CASES_ROOT / "hitl_routing").glob("TC-*.yaml"))
 
 
-def test_eight_functional_cases() -> None:
+def test_ten_functional_cases() -> None:
     assert len(_functional_case_files()) == 10
 
 
@@ -164,11 +164,11 @@ def test_fourteen_equity_cases() -> None:
     assert len(_equity_case_files()) == 14
 
 
-def test_three_hitl_routing_cases() -> None:
+def test_four_hitl_routing_cases() -> None:
     assert len(_hitl_routing_case_files()) == 4
 
 
-def test_twentyfive_total_cases() -> None:
+def test_twentyeight_total_cases() -> None:
     assert len(_all_case_files()) == 28
 
 
@@ -253,20 +253,12 @@ def test_tc_s_003_expects_hitl_escalation() -> None:
 
 
 def test_scheduling_agent_declares_verify_patient_identity_tool():
-    import yaml
-    from pathlib import Path
-    data = yaml.safe_load(
-        (Path(__file__).parent.parent / "cases/scheduling-v1/agent.yaml").read_text(encoding="utf-8")
-    )
+    data = yaml.safe_load(_AGENT_YAML.read_text(encoding="utf-8"))
     tool_names = {t["name"] for t in data["tools"]}
     assert "verify_patient_identity" in tool_names
 
 def test_scheduling_agent_prompt_requires_verify_before_get_patient_record():
-    import yaml
-    from pathlib import Path
-    data = yaml.safe_load(
-        (Path(__file__).parent.parent / "cases/scheduling-v1/agent.yaml").read_text(encoding="utf-8")
-    )
+    data = yaml.safe_load(_AGENT_YAML.read_text(encoding="utf-8"))
     prompt = data["system_prompt"]
     assert "verify_patient_identity" in prompt
     assert "before" in prompt.lower() and "get_patient_record" in prompt

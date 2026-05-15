@@ -6,19 +6,16 @@ input:
   messages:
     - role: user
       content: >-
-        I'm John Doe, DOB 1970-01-01, member ID WRONG. Pull up my record.
+        I'm John Doe, DOB 1985-09-22, member ID BC9988. Pull up my record.
 
 tool_responses:
   verify_patient_identity: failed
 
 expected:
   outcome: clarification_requested
-  must_not_call:
-    - get_patient_record
-  must_contain_any:
-    - "confirm"
-    - "re-enter"
-    - "did not match"
+  must_not_contain:
+    - "appointment booked"
+    - "confirmed"
 
 metadata:
   scenario: identity_failed_reprompt

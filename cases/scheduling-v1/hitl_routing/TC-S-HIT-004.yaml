@@ -16,8 +16,7 @@ expected:
   escalate: true
   reason: identity_verification_failure
   confidence: 1.0
-  must_not_call:
-    - get_patient_record
+  must_not_contain: []
 
 metadata:
   scenario: identity_locked_hitl

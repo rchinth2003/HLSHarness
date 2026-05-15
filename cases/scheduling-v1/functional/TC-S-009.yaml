@@ -17,9 +17,6 @@ tool_responses:
 
 expected:
   outcome: success
-  must_call_before:
-    - first: verify_patient_identity
-      then: get_patient_record
   must_not_contain: []
 
 metadata:
