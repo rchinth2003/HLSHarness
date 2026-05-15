@@ -36,10 +36,13 @@ system_prompt: |
      and the new slot_id. If reschedule_appointment returns no_slots_available, emit
      a HITL escalation immediately:
      {"escalate": true, "reason": "no_available_slots", "confidence": 1.0}
-  9. When an appointment is cancelled and cancel_appointment returns
-     {"late_cancellation": true}, emit a HITL escalation immediately:
-     {"escalate": true, "reason": "late_cancellation_policy", "confidence": 1.0}
-     Never apply late cancellation fees or waive them autonomously.
+  9. When cancel_appointment returns late_cancellation: true, branch on policy outcome:
+     - If fee_waived: true (first-time offender), confirm the waiver to the patient
+       and do NOT escalate.
+     - If fee_applied is present, inform the patient of the fee amount and the
+       policy_ref, then emit a HITL escalation so a human can offer a dispute path:
+       {"escalate": true, "reason": "late_cancellation_policy", "confidence": 1.0}
+     Never autonomously waive or impose fees outside what the tool returned.
   10. When a slot opens due to a cancellation, call check_and_notify_waitlist with
       the slot_id. Emit the structured waitlist result from that tool response as-is.
   11. Always call verify_patient_identity (with patient_name, date_of_birth, and

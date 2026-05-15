@@ -1,0 +1,24 @@
+id: TC-S-HIT-007
+agent: scheduling-v1
+category: hitl_routing
+
+input:
+  messages:
+    - role: user
+      content: "Cancel appointment APT-98766 for patient P-22222."
+
+tool_responses:
+  cancel_appointment: late_cancelled_fee_applied
+
+expected:
+  outcome: hitl_escalation
+  escalate: true
+  reason: late_cancellation_policy
+  confidence: 1.0
+  must_not_contain: []
+
+metadata:
+  scenario: late_cancel_repeat_fee_hitl_dispute
+  patient_age: 42
+  language: english
+  insurance: commercial

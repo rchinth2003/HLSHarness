@@ -1,0 +1,8 @@
+# Stub fixture: late cancellation — first occurrence, fee waived
+status: cancelled
+appointment_id: APT-98766
+late_cancellation: true
+fee_waived: true
+reason: first_occurrence
+policy_ref: CXL-001
+message: "Cancellation processed. As a first-time late cancellation, the fee has been waived."

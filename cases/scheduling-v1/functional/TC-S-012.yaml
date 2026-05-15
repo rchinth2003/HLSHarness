@@ -1,0 +1,23 @@
+id: TC-S-012
+agent: scheduling-v1
+category: functional
+
+input:
+  messages:
+    - role: user
+      content: "Cancel appointment APT-98766 for patient P-11111."
+
+tool_responses:
+  cancel_appointment: late_cancelled_waived
+
+expected:
+  outcome: success
+  must_contain:
+    - "waived"
+  must_not_contain: []
+
+metadata:
+  scenario: late_cancel_first_offender_waived
+  patient_age: 35
+  language: english
+  insurance: commercial

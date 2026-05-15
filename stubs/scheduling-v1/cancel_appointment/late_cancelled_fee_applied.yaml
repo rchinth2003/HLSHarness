@@ -1,0 +1,8 @@
+# Stub fixture: late cancellation — repeat offender, $25 fee applied
+status: cancelled
+appointment_id: APT-98766
+late_cancellation: true
+fee_applied: 25.00
+policy_ref: CXL-002
+patient_history_late_count: 3
+message: "Cancellation processed. A late cancellation fee of $25.00 has been applied per policy CXL-002."
