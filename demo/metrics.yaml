@@ -1,0 +1,15 @@
+# Illustrative baseline-vs-agentic benchmarks. Actual results vary by deployment.
+disclaimer: "Illustrative benchmarks — actual results vary by deployment."
+metrics:
+  - name: "Avg. time to schedule"
+    baseline: "8 min"
+    agentic: "45 sec"
+  - name: "Eligibility check time"
+    baseline: "3 min"
+    agentic: "8 sec"
+  - name: "No-show rate"
+    baseline: "18%"
+    agentic: "11%"
+  - name: "HITL escalation rate"
+    baseline: "100%"
+    agentic: "12%"

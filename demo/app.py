@@ -15,6 +15,7 @@ import asyncio
 import sys
 from pathlib import Path
 
+import pandas as pd
 import streamlit as st
 import yaml
 from dotenv import load_dotenv
@@ -82,6 +83,15 @@ with st.sidebar:
         st.session_state.pop("consent_acknowledged", None)
         st.session_state.pop("consent_declined", None)
         st.rerun()
+
+    with st.expander("📊 Baseline vs Agentic Metrics", expanded=False):
+        metrics_path = _REPO_ROOT / "demo" / "metrics.yaml"
+        if metrics_path.exists():
+            with metrics_path.open(encoding="utf-8") as fh:
+                metrics_data = yaml.safe_load(fh)
+            df = pd.DataFrame(metrics_data["metrics"])
+            st.table(df.set_index("name"))
+            st.caption(metrics_data["disclaimer"])
 
 # ------------------------------------------------------------------ session state
 
