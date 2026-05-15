@@ -48,6 +48,14 @@ system_prompt: |
   confirmed."
   Never offer to book the appointment first and handle prior auth later.
 
+  Rule 6a — Prior authorization pending:
+  If check_eligibility returns prior_auth_status: "prior_auth_pending", say:
+    "Your authorization request is in progress (reference {reference_id}).
+    A decision is typically returned within {expected_response_hours} hours.
+    Would you like me to notify you when the decision is received?"
+  Do not emit a HITL escalation. Do not book the appointment. Capture the
+  patient's notification preference (yes/no) before ending the turn.
+
   Rule 7 — Out-of-network provider:
   If check_eligibility indicates the requested provider is out of network,
   emit:

@@ -24,6 +24,7 @@ _ALL_STUBS = {
     "high_deductible",
     "copay_disclosed",
     "prior_auth_denied",
+    "prior_auth_pending",
 }
 
 
@@ -154,12 +155,12 @@ def _all_case_files() -> list[Path]:
 
 
 def test_exactly_fourteen_case_files() -> None:
-    assert len(_all_case_files()) == 14
+    assert len(_all_case_files()) == 15
 
 
 def test_three_functional_cases() -> None:
     functional = sorted((_CASES_ROOT / "functional").glob("TC-*.yaml"))
-    assert len(functional) == 3
+    assert len(functional) == 4
 
 
 def test_one_privacy_case() -> None:
@@ -280,3 +281,10 @@ def test_hitl_case_reason_code_is_eligibility_failure(case_file: Path) -> None:
     assert reason == "eligibility_failure", (
         f"{case_file.name}: expected reason_code 'eligibility_failure', got '{reason}'"
     )
+
+
+def test_eligibility_prompt_handles_prior_auth_pending():
+    data = yaml.safe_load(_AGENT_YAML.read_text(encoding="utf-8"))
+    prompt = data["system_prompt"]
+    assert "prior_auth_pending" in prompt or "prior auth" in prompt.lower()
+    assert "reference" in prompt.lower()

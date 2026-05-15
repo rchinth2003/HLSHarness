@@ -1,0 +1,9 @@
+# Stub fixture: prior authorization pending — Aetna HMO, reference ID PA-20260513-001
+covered: true
+co_pay: 50.00
+prior_auth_required: true
+prior_auth_status: prior_auth_pending
+expected_response_hours: 48
+reference_id: PA-20260513-001
+network_status: in_network
+plan_name: Aetna HMO

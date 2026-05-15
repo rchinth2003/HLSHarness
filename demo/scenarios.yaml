@@ -11,6 +11,10 @@ scenarios:
         search_available_slots: full_slots
         book_appointment: confirmed
 
+  # demo-note: In production, prior auth integrations (CoverMyMeds, Gold Carding)
+  # are asynchronous and can take hours to days. These stubs simulate synchronous
+  # responses for demo clarity.
+
   - name: prior_auth_approved
     description: "Prior auth required but pre-approved — Medicare patient, booking proceeds after auth check"
     persona_id: medicare_english_elderly

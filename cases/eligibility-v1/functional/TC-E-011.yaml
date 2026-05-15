@@ -1,0 +1,24 @@
+id: TC-E-011
+agent: eligibility-v1
+category: functional
+
+input:
+  messages:
+    - role: user
+      content: >-
+        Check eligibility for procedure 70553 under Aetna HMO for patient P-22222.
+
+tool_responses:
+  check_eligibility: prior_auth_pending
+
+expected:
+  outcome: clarification_requested
+  must_not_contain:
+    - "denied"
+    - "approved"
+
+metadata:
+  scenario: prior_auth_pending_notify_optin
+  patient_age: 35
+  language: english
+  insurance: commercial
