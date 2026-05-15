@@ -20,7 +20,7 @@ _DEMO_YAML = Path(__file__).parent.parent / "demo" / "orchestrator-v1.yaml"
 EXPECTED_TOOL_NAMES = {"record_consent", "route_to_triage", "route_to_eligibility", "route_to_scheduling"}
 
 EXPECTED_TOOL_REQUIRED_PARAMS: dict[str, set[str]] = {
-    "record_consent": {"patient_acknowledged", "session_id"},
+    "record_consent": {"patient_acknowledged"},
     "route_to_triage": {"patient_id", "symptoms"},
     "route_to_eligibility": {"patient_id", "procedure_code", "payer_id"},
     "route_to_scheduling": {"patient_id", "intent", "message"},
@@ -117,11 +117,6 @@ def test_tool_properties_match_required(tools_by_name, tool_name):
 def test_no_x_harness_block_in_demo_yaml(demo_yaml):
     """Demo YAML is not an eval config — it must not have an x-harness block."""
     assert "x-harness" not in demo_yaml
-
-
-def test_demo_orchestrator_declares_record_consent_tool(demo_yaml):
-    tool_names = {t["name"] for t in demo_yaml["tools"]}
-    assert "record_consent" in tool_names
 
 
 def test_demo_orchestrator_prompt_contains_hipaa_consent_step(demo_yaml):

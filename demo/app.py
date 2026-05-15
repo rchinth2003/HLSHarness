@@ -79,6 +79,8 @@ with st.sidebar:
         st.session_state.pop("runner", None)
         st.session_state.pop("messages", None)
         st.session_state.pop("trace_log", None)
+        st.session_state.pop("consent_acknowledged", None)
+        st.session_state.pop("consent_declined", None)
         st.rerun()
 
 # ------------------------------------------------------------------ session state
@@ -90,6 +92,8 @@ if "runner" not in st.session_state or st.session_state.get("_scenario") != sele
     st.session_state["messages"]: list[dict] = []
     st.session_state["trace_log"]: list[TurnResult] = []
     st.session_state["_scenario"] = selected_name
+    st.session_state["consent_acknowledged"] = False
+    st.session_state["consent_declined"] = False
 
 runner: DemoRunner = st.session_state["runner"]
 messages: list[dict] = st.session_state["messages"]
@@ -100,6 +104,8 @@ trace_log: list[TurnResult] = st.session_state["trace_log"]
 if "consent_acknowledged" not in st.session_state:
     st.session_state.consent_acknowledged = False
 
+# Dual-gate design: UI blocks input until acknowledged; Rule 0 adds a second LLM-level gate
+# for harness-level testing (TC-O-006) that bypasses the UI.
 if not st.session_state.consent_acknowledged:
     with st.container(border=True):
         st.markdown("### 🔒 HIPAA Notice of Privacy Practices")
@@ -113,11 +119,16 @@ if not st.session_state.consent_acknowledged:
             st.session_state.consent_acknowledged = True
             st.rerun()
         if col2.button("Decline"):
-            st.error(
-                "Session ended. Without acknowledgment we cannot collect "
-                "scheduling information. A human representative can assist you."
-            )
-            st.stop()
+            st.session_state["consent_declined"] = True
+            st.rerun()
+    st.stop()
+
+if st.session_state.get("consent_declined"):
+    st.error(
+        "Session ended. Without acknowledgment we cannot collect "
+        "scheduling information. Use **Reset conversation** in the "
+        "sidebar to start a new session."
+    )
     st.stop()
 
 # ------------------------------------------------------------------ layout

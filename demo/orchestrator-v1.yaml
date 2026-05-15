@@ -45,10 +45,9 @@ tools:
           description: True if patient agreed, false if declined
         session_id:
           type: string
-          description: Demo session identifier
+          description: Demo session identifier. Omit if unknown; defaults to current session.
       required:
         - patient_acknowledged
-        - session_id
 
   - name: route_to_triage
     description: >
