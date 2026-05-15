@@ -113,11 +113,11 @@ def test_loads_real_cases():
     assert len(cases) > 0
     scheduling = [c for c in cases if c.agent == "scheduling-v1"]
     functional = [c for c in scheduling if c.category == "functional"]
-    assert len(functional) == 10
+    assert len(functional) == 11
     equity = [c for c in scheduling if c.category == "equity"]
     assert len(equity) == 14
     hitl_routing = [c for c in scheduling if c.category == "hitl_routing"]
-    assert len(hitl_routing) == 4
+    assert len(hitl_routing) == 5
 
 
 # ── Fixture resolution ────────────────────────────────────────────────────────
@@ -222,7 +222,7 @@ def test_real_functional_cases_load_with_fixtures():
     cases = CaseLoader().load(
         Path("cases"), agent="scheduling-v1", category="functional", stubs_path=Path("stubs")
     )
-    assert len(cases) == 10
+    assert len(cases) == 11
     for case in cases:
         for _tool, response in case.tool_responses.items():
             assert isinstance(response, dict), (

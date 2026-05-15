@@ -51,6 +51,13 @@ system_prompt: |
       If status: locked, emit a HITL escalation immediately:
       {"escalate": true, "reason": "identity_verification_failure", "confidence": 1.0}
       and do not retrieve the record.
+  12. Before calling search_available_slots for a new visit (not a reschedule),
+      call match_providers with specialty, language_preference, gender_preference
+      (when known), insurance_plan, and location_zip. If matches is empty, emit:
+      {"escalate": true, "reason": "no_available_slots", "confidence": 1.0}
+      and do not call search_available_slots. Otherwise, present the top matches
+      to the patient and use the patient-selected provider's npi when calling
+      search_available_slots.
 
 tools:
   - name: search_available_slots
@@ -177,6 +184,28 @@ tools:
         - patient_name
         - date_of_birth
         - mrn_or_insurance_id
+
+  - name: match_providers
+    description: >
+      Match in-network providers by specialty, patient language/gender preference,
+      insurance plan, and location. Returns ranked list with match_score.
+    parameters:
+      type: object
+      properties:
+        specialty:
+          type: string
+        language_preference:
+          type: string
+        gender_preference:
+          type: string
+        insurance_plan:
+          type: string
+        location_zip:
+          type: string
+      required:
+        - specialty
+        - insurance_plan
+        - location_zip
 
 x-harness:
   categories:

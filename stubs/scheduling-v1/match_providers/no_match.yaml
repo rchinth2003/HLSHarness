@@ -1,0 +1,4 @@
+# Stub fixture: no in-network providers found — Medicaid, ZIP 99999
+matches: []
+reason: no_in_network_providers
+specialty_requested: cardiology

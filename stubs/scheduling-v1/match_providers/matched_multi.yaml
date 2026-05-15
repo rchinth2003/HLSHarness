@@ -1,0 +1,20 @@
+# Stub fixture: multiple providers matched — cardiology, Aetna PPO, including Spanish-speaking
+matches:
+  - provider_name: "Dr. Aisha Khan, MD"
+    npi: "1234567890"
+    specialty: cardiology
+    languages: ["en", "ur"]
+    accepting_new_patients: true
+    match_score: 0.94
+  - provider_name: "Dr. Marco Reyes, MD"
+    npi: "2345678901"
+    specialty: cardiology
+    languages: ["en", "es"]
+    accepting_new_patients: true
+    match_score: 0.88
+  - provider_name: "Dr. Lin Tanaka, MD"
+    npi: "3456789012"
+    specialty: cardiology
+    languages: ["en", "ja"]
+    accepting_new_patients: false
+    match_score: 0.71

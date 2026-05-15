@@ -1,0 +1,9 @@
+# Stub fixture: single in-network provider matched — cardiology, Aetna PPO, ZIP 90210
+matches:
+  - provider_name: "Dr. Aisha Khan, MD"
+    npi: "1234567890"
+    specialty: cardiology
+    languages: ["en", "ur"]
+    accepting_new_patients: true
+    match_score: 0.94
+    rationale: "In-network for Aetna PPO; cardiology specialty match; ZIP 90210 within 5 miles."

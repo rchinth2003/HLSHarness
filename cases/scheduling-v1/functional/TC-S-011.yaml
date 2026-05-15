@@ -1,0 +1,25 @@
+id: TC-S-011
+agent: scheduling-v1
+category: functional
+
+input:
+  messages:
+    - role: user
+      content: >-
+        I need a Spanish-speaking cardiologist near 90210, in-network for my
+        Aetna PPO plan.
+
+tool_responses:
+  match_providers: matched_multi
+  search_available_slots: full_slots
+  book_appointment: confirmed
+
+expected:
+  outcome: success
+  must_not_contain: []
+
+metadata:
+  scenario: provider_match_then_book
+  patient_age: 45
+  language: english
+  insurance: commercial

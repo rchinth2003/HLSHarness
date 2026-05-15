@@ -7,6 +7,7 @@ scenarios:
         check_eligibility: covered
       scheduling-v1:
         verify_patient_identity: verified
+        match_providers: matched_multi
         search_available_slots: full_slots
         book_appointment: confirmed
 

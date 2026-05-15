@@ -157,7 +157,7 @@ def _hitl_routing_case_files() -> list[Path]:
 
 
 def test_ten_functional_cases() -> None:
-    assert len(_functional_case_files()) == 10
+    assert len(_functional_case_files()) == 11
 
 
 def test_fourteen_equity_cases() -> None:
@@ -165,11 +165,11 @@ def test_fourteen_equity_cases() -> None:
 
 
 def test_four_hitl_routing_cases() -> None:
-    assert len(_hitl_routing_case_files()) == 4
+    assert len(_hitl_routing_case_files()) == 5
 
 
 def test_twentyeight_total_cases() -> None:
-    assert len(_all_case_files()) == 28
+    assert len(_all_case_files()) == 30
 
 
 # ── per-case structural validation ───────────────────────────────────────────
@@ -262,3 +262,16 @@ def test_scheduling_agent_prompt_requires_verify_before_get_patient_record():
     prompt = data["system_prompt"]
     assert "verify_patient_identity" in prompt
     assert "before" in prompt.lower() and "get_patient_record" in prompt
+
+
+def test_scheduling_agent_declares_match_providers_tool():
+    data = yaml.safe_load(_AGENT_YAML.read_text(encoding="utf-8"))
+    tool_names = {t["name"] for t in data["tools"]}
+    assert "match_providers" in tool_names
+
+
+def test_scheduling_agent_prompt_calls_match_providers_before_search():
+    data = yaml.safe_load(_AGENT_YAML.read_text(encoding="utf-8"))
+    prompt = data["system_prompt"]
+    assert "match_providers" in prompt
+    assert "search_available_slots" in prompt

@@ -1,0 +1,25 @@
+id: TC-S-HIT-005
+agent: scheduling-v1
+category: hitl_routing
+
+input:
+  messages:
+    - role: user
+      content: >-
+        I need an in-network cardiologist near 99999 for my Medicaid plan.
+
+tool_responses:
+  match_providers: no_match
+
+expected:
+  outcome: hitl_escalation
+  escalate: true
+  reason: no_available_slots
+  confidence: 1.0
+  must_not_contain: []
+
+metadata:
+  scenario: no_in_network_match_hitl
+  patient_age: 50
+  language: english
+  insurance: medicaid
