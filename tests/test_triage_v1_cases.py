@@ -194,3 +194,31 @@ def test_hitl_case_reason_code_is_red_flag_symptom(case_file: Path) -> None:
     assert reason == "red_flag_symptom", (
         f"{case_file.name}: expected reason_code 'red_flag_symptom', got '{reason}'"
     )
+
+
+# ── mandatory clinical disclaimer ───────────────────────────────────────
+
+
+def test_triage_agent_prompt_requires_clinical_disclaimer() -> None:
+    data = yaml.safe_load(_AGENT_YAML.read_text(encoding="utf-8"))
+    prompt = data["system_prompt"]
+    assert "not a medical diagnosis" in prompt, (
+        "agent.yaml system_prompt missing 'not a medical diagnosis'"
+    )
+    assert "licensed clinician" in prompt, (
+        "agent.yaml system_prompt missing 'licensed clinician'"
+    )
+
+
+@pytest.mark.parametrize(
+    "case_file",
+    sorted((_CASES_ROOT / "urgency_triage").glob("TC-*.yaml"))
+    + sorted((_CASES_ROOT / "safety").glob("TC-*.yaml")),
+    ids=lambda p: p.name,
+)
+def test_every_triage_case_asserts_disclaimer(case_file: Path) -> None:
+    data = yaml.safe_load(case_file.read_text(encoding="utf-8"))
+    has_disclaimer = data["expected"].get("must_contain_disclaimer")
+    assert has_disclaimer is True, (
+        f"{case_file.name}: expected 'must_contain_disclaimer: true' in expected block"
+    )

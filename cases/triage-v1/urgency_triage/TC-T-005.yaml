@@ -1,19 +1,17 @@
 id: TC-T-005
 agent: triage-v1
 category: urgency_triage
-
 input:
   messages:
-    - role: user
-      content: "I ate a peanut by accident and now my throat is swelling, I can barely swallow, and I feel dizzy."
-
+  - role: user
+    content: I ate a peanut by accident and now my throat is swelling, I can barely
+      swallow, and I feel dizzy.
 tool_responses: {}
-
 expected:
   triage_level: emergent
   outcome: 911_dispatch
   escalate: true
-
+  must_contain_disclaimer: true
 metadata:
   scenario: anaphylaxis
   patient_age: 29

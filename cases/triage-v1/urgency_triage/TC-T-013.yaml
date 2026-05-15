@@ -1,18 +1,16 @@
 id: TC-T-013
 agent: triage-v1
 category: urgency_triage
-
 input:
   messages:
-    - role: user
-      content: "I need to get a refill on my blood pressure medication. I have about two weeks left."
-
+  - role: user
+    content: I need to get a refill on my blood pressure medication. I have about
+      two weeks left.
 tool_responses: {}
-
 expected:
   triage_level: routine
   outcome: routine_scheduling
-
+  must_contain_disclaimer: true
 metadata:
   scenario: medication_refill_request
   patient_age: 64

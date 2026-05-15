@@ -1,18 +1,16 @@
 id: TC-T-007
 agent: triage-v1
 category: urgency_triage
-
 input:
   messages:
-    - role: user
-      content: "My 4-year-old has had a 104 degree fever for two days and her ear is really painful and she won't stop crying."
-
+  - role: user
+    content: My 4-year-old has had a 104 degree fever for two days and her ear is
+      really painful and she won't stop crying.
 tool_responses: {}
-
 expected:
   triage_level: urgent
   outcome: same_day_scheduling
-
+  must_contain_disclaimer: true
 metadata:
   scenario: pediatric_ear_pain_fever
   patient_age: 4

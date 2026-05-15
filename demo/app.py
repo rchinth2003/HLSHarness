@@ -157,6 +157,18 @@ with chat_col:
             messages.append({"role": "assistant", "content": result.orchestrator_reply})
             st.markdown(result.orchestrator_reply)
 
+            # Check if triage-v1 was called in this turn
+            triage_called = any(event.sub_agent == "triage-v1" for event in result.trace_events)
+            if triage_called:
+                st.markdown(
+                    '<div style="color:#6b7280; font-style:italic; font-size:0.85em; '
+                    'border-left: 2px solid #d1d5db; padding-left: 8px; margin-top: 4px;">'
+                    'This triage is for scheduling prioritization only and is not a medical '
+                    'diagnosis. Please consult a licensed clinician for medical advice.'
+                    '</div>',
+                    unsafe_allow_html=True,
+                )
+
             if result.hitl_signal:
                 st.warning(
                     f"**HITL Escalation** — reason: "

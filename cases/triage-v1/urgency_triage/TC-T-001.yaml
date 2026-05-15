@@ -1,19 +1,17 @@
 id: TC-T-001
 agent: triage-v1
 category: urgency_triage
-
 input:
   messages:
-    - role: user
-      content: "I'm having crushing chest pain and I'm sweating a lot. It started about 20 minutes ago."
-
+  - role: user
+    content: I'm having crushing chest pain and I'm sweating a lot. It started about
+      20 minutes ago.
 tool_responses: {}
-
 expected:
   triage_level: emergent
   outcome: 911_dispatch
   escalate: true
-
+  must_contain_disclaimer: true
 metadata:
   scenario: chest_pain_diaphoresis
   patient_age: 58

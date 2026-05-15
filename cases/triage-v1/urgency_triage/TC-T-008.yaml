@@ -1,18 +1,16 @@
 id: TC-T-008
 agent: triage-v1
 category: urgency_triage
-
 input:
   messages:
-    - role: user
-      content: "I have severe pain in my lower right abdomen that keeps getting worse. It started a few hours ago and I feel nauseous."
-
+  - role: user
+    content: I have severe pain in my lower right abdomen that keeps getting worse.
+      It started a few hours ago and I feel nauseous.
 tool_responses: {}
-
 expected:
   triage_level: urgent
   outcome: same_day_scheduling
-
+  must_contain_disclaimer: true
 metadata:
   scenario: rlq_abdominal_pain
   patient_age: 23

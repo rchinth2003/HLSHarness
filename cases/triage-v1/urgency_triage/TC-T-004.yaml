@@ -1,19 +1,17 @@
 id: TC-T-004
 agent: triage-v1
 category: urgency_triage
-
 input:
   messages:
-    - role: user
-      content: "My husband's face is drooping on one side, his arm is weak and he can't speak clearly. This just started."
-
+  - role: user
+    content: My husband's face is drooping on one side, his arm is weak and he can't
+      speak clearly. This just started.
 tool_responses: {}
-
 expected:
   triage_level: emergent
   outcome: 911_dispatch
   escalate: true
-
+  must_contain_disclaimer: true
 metadata:
   scenario: fast_stroke_signs
   patient_age: 67

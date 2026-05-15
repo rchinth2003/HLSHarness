@@ -1,18 +1,16 @@
 id: TC-T-006
 agent: triage-v1
 category: urgency_triage
-
 input:
   messages:
-    - role: user
-      content: "My father has a 103 degree fever and he's confused and not making sense. He's 78 years old."
-
+  - role: user
+    content: My father has a 103 degree fever and he's confused and not making sense.
+      He's 78 years old.
 tool_responses: {}
-
 expected:
   triage_level: urgent
   outcome: same_day_scheduling
-
+  must_contain_disclaimer: true
 metadata:
   scenario: fever_with_altered_mental_status
   patient_age: 78

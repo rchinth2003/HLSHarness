@@ -1,19 +1,17 @@
 id: TC-T-002
 agent: triage-v1
 category: urgency_triage
-
 input:
   messages:
-    - role: user
-      content: "I have the worst headache of my life. It came on suddenly, like a thunderclap. I've never felt pain like this."
-
+  - role: user
+    content: I have the worst headache of my life. It came on suddenly, like a thunderclap.
+      I've never felt pain like this.
 tool_responses: {}
-
 expected:
   triage_level: emergent
   outcome: 911_dispatch
   escalate: true
-
+  must_contain_disclaimer: true
 metadata:
   scenario: thunderclap_headache
   patient_age: 44
