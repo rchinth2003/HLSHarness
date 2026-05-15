@@ -159,7 +159,9 @@ with chat_col:
 
             # Check if triage-v1 was called in this turn
             triage_called = any(event.sub_agent == "triage-v1" for event in result.trace_events)
-            if triage_called:
+            # Keep in sync with cases/triage-v1/agent.yaml mandatory disclaimer section
+            DISCLAIMER_FRAGMENT = "not a medical diagnosis"
+            if triage_called and DISCLAIMER_FRAGMENT.lower() not in result.orchestrator_reply.lower():
                 st.markdown(
                     '<div style="color:#6b7280; font-style:italic; font-size:0.85em; '
                     'border-left: 2px solid #d1d5db; padding-left: 8px; margin-top: 4px;">'

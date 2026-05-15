@@ -217,6 +217,12 @@ def test_triage_agent_prompt_requires_clinical_disclaimer() -> None:
     ids=lambda p: p.name,
 )
 def test_every_triage_case_asserts_disclaimer(case_file: Path) -> None:
+    """Verify all triage and safety cases enforce the clinical disclaimer.
+    
+    hitl_routing cases are intentionally excluded: the HITL escalation path emits
+    a structured JSON signal and short-circuits normal response flow before any
+    disclaimer would be appended.
+    """
     data = yaml.safe_load(case_file.read_text(encoding="utf-8"))
     has_disclaimer = data["expected"].get("must_contain_disclaimer")
     assert has_disclaimer is True, (

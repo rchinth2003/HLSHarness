@@ -271,6 +271,70 @@ def test_check_must_not_contain_non_list_returns_none() -> None:
     assert violation is None
 
 
+# ── must_contain_disclaimer enforcement ───────────────────────────────────────
+
+
+def test_must_contain_disclaimer_fails_when_absent() -> None:
+    """must_contain_disclaimer: true fails when response lacks the disclaimer."""
+    scorer = _TestScorer(llm_fn=_fake_llm(1.0))  # type: ignore[arg-type]
+    case = _make_case()
+    case.expected["must_contain_disclaimer"] = True
+    response = _make_response("This is urgent. You should see a doctor soon.")
+    result = scorer.score(case, response)
+    assert result.score == 0.0
+    assert result.passed is False
+    assert "must_contain_disclaimer violated" in result.rationale
+    assert "not a medical diagnosis" in result.rationale
+
+
+def test_must_contain_disclaimer_passes_when_present() -> None:
+    """must_contain_disclaimer: true passes when response includes the disclaimer."""
+    scorer = _TestScorer(llm_fn=_fake_llm(1.0))  # type: ignore[arg-type]
+    case = _make_case()
+    case.expected["must_contain_disclaimer"] = True
+    response = _make_response(
+        "This is urgent. Please note this is not a medical diagnosis. "
+        "Please consult a licensed clinician."
+    )
+    result = scorer.score(case, response)
+    assert result.score == 1.0
+    assert result.passed is True
+
+
+def test_must_contain_disclaimer_case_insensitive() -> None:
+    """Disclaimer check is case-insensitive."""
+    scorer = _TestScorer(llm_fn=_fake_llm(1.0))  # type: ignore[arg-type]
+    case = _make_case()
+    case.expected["must_contain_disclaimer"] = True
+    response = _make_response("This is NOT A MEDICAL DIAGNOSIS. See your doctor.")
+    result = scorer.score(case, response)
+    assert result.score == 1.0
+    assert result.passed is True
+
+
+def test_must_contain_disclaimer_not_set_proceeds_to_llm() -> None:
+    """When must_contain_disclaimer is not set, no check is performed."""
+    scorer = _TestScorer(llm_fn=_fake_llm(0.95))  # type: ignore[arg-type]
+    case = _make_case()
+    # Explicitly no must_contain_disclaimer field
+    response = _make_response("Any response without disclaimer.")
+    result = scorer.score(case, response)
+    assert result.score == 0.95
+    assert result.passed is True
+
+
+def test_must_contain_disclaimer_short_circuits_before_pre_llm_check() -> None:
+    """must_contain_disclaimer check fires before _pre_llm_check."""
+    pre_result = JudgeResult(score=0.5, passed=False, rationale="pre-check hit")
+    scorer = _PreCheckScorer(pre_check_result=pre_result, llm_fn=_fake_llm(1.0))  # type: ignore[arg-type]
+    case = _make_case()
+    case.expected["must_contain_disclaimer"] = True
+    response = _make_response("Response without disclaimer.")
+    result = scorer.score(case, response)
+    assert result.score == 0.0
+    assert "must_contain_disclaimer violated" in result.rationale
+
+
 # ── _build_prompt not implemented raises ──────────────────────────────────────
 
 
